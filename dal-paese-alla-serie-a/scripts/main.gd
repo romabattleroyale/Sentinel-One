@@ -18,6 +18,8 @@ var played := 0
 var wins := 0
 var draws := 0
 var losses := 0
+var selected_formation := "4-4-2"
+var selected_tactic := "Equilibrato"
 var roster: Array[Dictionary] = []
 var root_box: VBoxContainer
 
@@ -231,11 +233,21 @@ func show_tactics() -> void:
 	_subpage("TATTICHE", "Scegli il piano gara prima della prossima partita.")
 	var box := _panel(root_box)
 	_label(box, "MODULO", 13, GOLD)
+	_label(box, "Modulo attuale: " + selected_formation, 15, GREEN)
 	for formation in ["4-4-2", "4-3-3", "3-5-2", "4-2-3-1"]:
-		_button(box, formation, func(): _notice("Modulo selezionato: " + formation))
+		_button(box, formation + ("  ✓" if formation == selected_formation else ""), _select_formation.bind(formation))
 	_label(box, "APPROCCIO", 13, GOLD)
+	_label(box, "Approccio attuale: " + selected_tactic, 15, GREEN)
 	for tactic in ["Difensivo", "Equilibrato", "Offensivo"]:
-		_button(box, tactic, func(): _notice("Approccio selezionato: " + tactic))
+		_button(box, tactic + ("  ✓" if tactic == selected_tactic else ""), _select_tactic.bind(tactic))
+
+func _select_formation(value: String) -> void:
+	selected_formation = value
+	show_tactics()
+
+func _select_tactic(value: String) -> void:
+	selected_tactic = value
+	show_tactics()
 
 func show_market() -> void:
 	_subpage("MERCATO", "Svincolati disponibili · gli acquisti consumano il budget del club.")
@@ -247,14 +259,22 @@ func show_market() -> void:
 		var box := _panel(root_box)
 		_label(box, labels[i], 18)
 		_label(box, "Valutazione %d · Premio € %d" % [48 + i * 4, cost], 13, MUTED)
-		_button(box, "INGAGGIA", func():
-			if budget >= cost:
-				budget -= cost
-				roster.append({"name": names[i], "role": roles[i], "ovr": 48 + i * 4, "morale": 70, "wage": 160 + i * 30})
-				_notice("Giocatore ingaggiato.")
-			else:
-				_notice("Budget insufficiente.")
-		)
+		_button(box, "INGAGGIA", _sign_player.bind(i))
+
+func _sign_player(index: int) -> void:
+	var names := ["Pietro Neri", "Tommaso Sala", "Riccardo Riva"]
+	var roles := ["POR", "CC", "ATT"]
+	var cost := 900 + index * 350
+	if budget < cost:
+		_notice("Budget insufficiente.")
+		return
+	for player in roster:
+		if str(player.get("name", "")) == names[index]:
+			_notice("Questo giocatore è già nella tua rosa.")
+			return
+	budget -= cost
+	roster.append({"name": names[index], "role": roles[index], "ovr": 48 + index * 4, "morale": 70, "wage": 160 + index * 30})
+	show_market()
 
 func show_board() -> void:
 	_subpage("DIRIGENZA", "La società vuole vedere progressi: risultati, sostenibilità e identità.")
@@ -275,12 +295,29 @@ func play_match() -> void:
 	var strength := 0
 	for p in roster: strength += int(p["ovr"])
 	var edge := float(strength) / maxf(1.0, float(roster.size())) / 10.0
+	var attack_bonus := 0.0
+	var defense_bonus := 0.0
+	match selected_tactic:
+		"Difensivo":
+			attack_bonus = -0.035
+			defense_bonus = 0.075
+		"Offensivo":
+			attack_bonus = 0.085
+			defense_bonus = -0.065
+		match selected_formation:
+			"4-3-3": attack_bonus += 0.025
+			"3-5-2":
+				attack_bonus += 0.015
+				defense_bonus -= 0.01
+			"4-2-3-1":
+				attack_bonus += 0.015
+				defense_bonus += 0.015
 	var roll := randf() + (edge - 5.2) * 0.07
 	var gf := 0
 	var ga := 0
 	for i in range(5):
-		if randf() < clampf(0.18 + roll * 0.12, 0.08, 0.48): gf += 1
-		if randf() < clampf(0.25 - (edge - 5.2) * 0.025, 0.08, 0.42): ga += 1
+		if randf() < clampf(0.18 + roll * 0.12 + attack_bonus, 0.08, 0.48): gf += 1
+		if randf() < clampf(0.25 - (edge - 5.2) * 0.025 - defense_bonus, 0.08, 0.42): ga += 1
 	played += 1
 	budget -= roster.size() * 18
 	if gf > ga:
@@ -330,6 +367,8 @@ func load_game() -> void:
 	wins = int(data.get("wins", 0))
 	draws = int(data.get("draws", 0))
 	losses = int(data.get("losses", 0))
+	selected_formation = str(data.get("selected_formation", "4-4-2"))
+	selected_tactic = str(data.get("selected_tactic", "Equilibrato"))
 	roster.clear()
 	var saved_roster: Variant = data.get("roster", [])
 	if saved_roster is Array:
@@ -341,7 +380,7 @@ func load_game() -> void:
 	show_dashboard()
 
 func save_game() -> void:
-	var data := {"club_name": club_name, "town_name": town_name, "season": season, "budget": budget, "fans": fans, "points": points, "played": played, "wins": wins, "draws": draws, "losses": losses, "roster": roster}
+	var data := {"club_name": club_name, "town_name": town_name, "season": season, "budget": budget, "fans": fans, "points": points, "played": played, "wins": wins, "draws": draws, "losses": losses, "selected_formation": selected_formation, "selected_tactic": selected_tactic, "roster": roster}
 	var file := FileAccess.open("user://career_save.json", FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(data, "\t"))
