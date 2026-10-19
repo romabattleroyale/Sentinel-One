@@ -7,6 +7,9 @@ const GOLD := Color("#e7bd4b")
 const WHITE := Color("#f5f7fb")
 const MUTED := Color("#a8b7c8")
 const GREEN := Color("#53d6a2")
+const TURF := Color("#174b39")
+const TURF_LIGHT := Color("#236447")
+const SKY := Color("#9ec9e8")
 
 var club_name := "ASD Borgo Nuovo"
 var town_name := "Borgo Nuovo"
@@ -56,7 +59,7 @@ func _panel(parent: Control, color: Color = PANEL) -> VBoxContainer:
 	style.bg_color = color
 	style.border_color = Color("#2a4057")
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(14)
+	style.set_corner_radius_all(10)
 	style.content_margin_left = 18
 	style.content_margin_right = 18
 	style.content_margin_top = 16
@@ -103,10 +106,35 @@ func _button(parent: Control, value: String, action: Callable, primary: bool = f
 	return b
 
 func _header(kicker: String, title: String, subtitle: String) -> void:
-	var box := _panel(root_box, Color("#0e2033"))
-	_label(box, kicker.to_upper(), 12, GOLD)
-	_label(box, title, 30, WHITE)
-	_label(box, subtitle, 14, MUTED)
+	var outer := _panel(root_box, Color("#0b1b2b"))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	outer.add_child(row)
+	var crest := PanelContainer.new()
+	crest.custom_minimum_size = Vector2(82, 82)
+	var crest_style := StyleBoxFlat.new()
+	crest_style.bg_color = Color("#183b31")
+	crest_style.border_color = GOLD
+	crest_style.set_border_width_all(2)
+	crest_style.set_corner_radius_all(12)
+	crest.add_theme_stylebox_override("panel", crest_style)
+	row.add_child(crest)
+	var crest_label := Label.new()
+	crest_label.text = "FC"
+	crest_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	crest_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	crest_label.add_theme_font_size_override("font_size", 25)
+	crest_label.add_theme_color_override("font_color", GOLD)
+	crest.add_child(crest_label)
+	var title_stack := VBoxContainer.new()
+	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_stack.add_theme_constant_override("separation", 4)
+	row.add_child(title_stack)
+	_label(title_stack, kicker.to_upper(), 11, GOLD)
+	_label(title_stack, title, 28, WHITE)
+	_label(title_stack, subtitle, 14, MUTED)
+	var status := _label(outer, "●  CARRIERA ATTIVA     ITALIA / DILETTANTI", 10, GREEN)
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 func show_start() -> void:
 	_wipe()
@@ -171,6 +199,12 @@ func show_dashboard() -> void:
 	_label(match, "PROSSIMA PARTITA", 12, GOLD)
 	_label(match, "%s   VS   RIVALI DEL BORGO" % club_name.to_upper(), 23)
 	_label(match, "Giornata %d · Campo comunale · Obiettivo: conquistare il paese." % (played + 1), 14, MUTED)
+	_add_pitch(match, 170)
+	var match_info := HBoxContainer.new()
+	match_info.add_theme_constant_override("separation", 10)
+	match.add_child(match_info)
+	_label(match_info, "FORMA: " + selected_formation, 12, SKY)
+	_label(match_info, "PIANO: " + selected_tactic.to_upper(), 12, GREEN)
 	_button(match, "▶  GIOCA LA PROSSIMA PARTITA", play_match, true)
 	_label(root_box, "CENTRO DI GESTIONE", 13, GOLD)
 	var grid := GridContainer.new()
@@ -187,6 +221,35 @@ func show_dashboard() -> void:
 	_tile(grid, "SALVATAGGIO", "Salva la carriera", save_game)
 	_button(root_box, "TORNA AL MENU CLUB", show_start)
 
+func _add_pitch(parent: Control, height: float) -> void:
+	var pitch := Control.new()
+	pitch.custom_minimum_size = Vector2(0, height)
+	pitch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pitch.draw.connect(func():
+		var rect := pitch.get_rect()
+		var inset := Rect2(Vector2(12, 12), rect.size - Vector2(24, 24))
+		pitch.draw_rect(Rect2(Vector2.ZERO, rect.size), Color("#12372c"), true)
+		pitch.draw_rect(inset, TURF, true)
+		var stripe_width := inset.size.x / 8.0
+		for i in range(8):
+			if i % 2 == 0:
+				pitch.draw_rect(Rect2(inset.position + Vector2(stripe_width * i, 0), Vector2(stripe_width, inset.size.y)), TURF_LIGHT, true)
+		var line := Color(0.78, 0.9, 0.8, 0.8)
+		pitch.draw_rect(inset, line, false, 2.0)
+		pitch.draw_line(Vector2(inset.position.x + inset.size.x / 2, inset.position.y), Vector2(inset.position.x + inset.size.x / 2, inset.end.y), line, 2.0)
+		pitch.draw_arc(inset.position + inset.size / 2, minf(inset.size.x, inset.size.y) * 0.13, 0, TAU, 48, line, 2.0)
+		var box_h := inset.size.y * 0.38
+		var box_w := inset.size.x * 0.14
+		pitch.draw_rect(Rect2(inset.position + Vector2(0, (inset.size.y-box_h)/2), Vector2(box_w, box_h)), line, false, 2.0)
+		pitch.draw_rect(Rect2(Vector2(inset.end.x-box_w, inset.position.y+(inset.size.y-box_h)/2), Vector2(box_w, box_h)), line, false, 2.0)
+		var positions := [Vector2(0.18,0.25),Vector2(0.18,0.5),Vector2(0.18,0.75),Vector2(0.35,0.2),Vector2(0.35,0.42),Vector2(0.35,0.62),Vector2(0.35,0.82),Vector2(0.48,0.35),Vector2(0.48,0.65),Vector2(0.65,0.35),Vector2(0.65,0.65)]
+		for i in range(positions.size()):
+			var pos: Vector2 = inset.position + Vector2(inset.size.x * positions[i].x, inset.size.y * positions[i].y)
+			pitch.draw_circle(pos, 5.5, GOLD if i < 4 else Color("#f1f5f9"))
+			pitch.draw_arc(pos, 6.5, 0, TAU, 16, Color("#102237"), 1.0)
+	)
+	parent.add_child(pitch)
+
 func _metric(parent: Control, heading: String, value: String, sub: String, accent: Color) -> void:
 	var box := _panel(parent)
 	_label(box, heading, 12, accent)
@@ -194,10 +257,10 @@ func _metric(parent: Control, heading: String, value: String, sub: String, accen
 	_label(box, sub, 12, MUTED)
 
 func _tile(parent: Control, heading: String, sub: String, action: Callable) -> void:
-	var box := _panel(parent, PANEL_2)
-	_label(box, heading, 18, GOLD)
-	_label(box, sub, 13, MUTED)
-	_button(box, "APRI", action)
+	var box := _panel(parent, Color("#13283b"))
+	_label(box, "▰  " + heading, 17, GOLD)
+	_label(box, sub, 12, MUTED)
+	_button(box, "APRI SEZIONE  →", action)
 
 func _subpage(title: String, subtitle: String) -> void:
 	_wipe()
@@ -232,6 +295,8 @@ func show_standings() -> void:
 func show_tactics() -> void:
 	_subpage("TATTICHE", "Scegli il piano gara prima della prossima partita.")
 	var box := _panel(root_box)
+	_label(box, "LAVAGNA TATTICA  ·  " + selected_formation, 13, GOLD)
+	_add_pitch(box, 300)
 	_label(box, "MODULO", 13, GOLD)
 	_label(box, "Modulo attuale: " + selected_formation, 15, GREEN)
 	for formation in ["4-4-2", "4-3-3", "3-5-2", "4-2-3-1"]:
