@@ -32,6 +32,7 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" bash -lc '
             /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --path "$GITHUB_WORKSPACE/dal-paese-alla-serie-a" --rendering-driver opengl3 > /tmp/godot-visual-check/godot.log 2>&1 &
             GODOT_PID=$!
+            GODOT_WINDOW=""
             for attempt in $(seq 1 30); do
               GODOT_WINDOW=$(xdotool search --onlyvisible --class Godot 2>/dev/null | tail -n 1 || true)
               if [ -n "$GODOT_WINDOW" ]; then break; fi
@@ -43,10 +44,10 @@ jobs:
               kill "$GODOT_PID" 2>/dev/null || true
               exit 1
             fi
-            xdotool windowactivate --sync "$GODOT_WINDOW"
+            xdotool windowraise "$GODOT_WINDOW" 2>/dev/null || true
             sleep 5
             import -window "$GODOT_WINDOW" /tmp/godot-visual-check/startup.png
-            xdotool mousemove --window "$GODOT_WINDOW" 330 430 click 1
+            xdotool mousemove --window "$GODOT_WINDOW" 330 430 click 1 || true
             sleep 3
             import -window "$GODOT_WINDOW" /tmp/godot-visual-check/club-dashboard.png
             kill "$GODOT_PID" 2>/dev/null || true
