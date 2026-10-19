@@ -17,7 +17,7 @@ jobs:
       - name: Download Godot headless
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip
+          sudo apt-get install -y wget unzip xvfb imagemagick
           GODOT_VERSION="4.7.2"
           wget -q "https://github.com/godotengine/godot/releases/download/$GODOT_VERSION-stable/Godot_v$GODOT_VERSION-stable_linux.x86_64.zip" -O /tmp/godot.zip
           unzip -q /tmp/godot.zip -d /tmp/godot
@@ -26,6 +26,26 @@ jobs:
       - name: Import and parse project
         run: |
           /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --editor --path dal-paese-alla-serie-a --quit
+      - name: Run game with Linux display and capture screen
+        run: |
+          mkdir -p /tmp/godot-visual-check
+          xvfb-run -a -s "-screen 0 1280x720x24" bash -lc '
+            /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --path "$GITHUB_WORKSPACE/dal-paese-alla-serie-a" --rendering-driver opengl3 > /tmp/godot-visual-check/godot.log 2>&1 &
+            GODOT_PID=$!
+            sleep 8
+            import -window root /tmp/godot-visual-check/startup.png || true
+            kill "$GODOT_PID" 2>/dev/null || true
+            wait "$GODOT_PID" 2>/dev/null || true
+          '
+          cat /tmp/godot-visual-check/godot.log
+          test -s /tmp/godot-visual-check/startup.png
       - name: Run startup smoke test
         run: |
           /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path dal-paese-alla-serie-a --quit-after 3
+      - name: Upload Linux visual check
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-linux-visual-check
+          path: /tmp/godot-visual-check/
+          if-no-files-found: warn
