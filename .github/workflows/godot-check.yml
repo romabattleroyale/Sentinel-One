@@ -41,7 +41,8 @@ jobs:
             wait "$GODOT_PID" 2>/dev/null || true
           '
           cat /tmp/godot-visual-check/godot.log
-          test -s /tmp/godot-visual-check/startup.png\n          test -s /tmp/godot-visual-check/club-dashboard.png
+          test -s /tmp/godot-visual-check/startup.png
+          test -s /tmp/godot-visual-check/club-dashboard.png
       - name: Run startup smoke test
         run: |
           /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path dal-paese-alla-serie-a --quit-after 3
