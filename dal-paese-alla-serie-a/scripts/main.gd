@@ -136,6 +136,8 @@ func show_start() -> void:
 		_create_roster()
 		show_dashboard()
 	, true)
+	var continue_button := _button(left, "CONTINUA CARRIERA", load_game, false)
+	continue_button.disabled = not FileAccess.file_exists("user://career_save.json")
 	var right := _panel(columns, Color("#102a2c"))
 	right.size_flags_stretch_ratio = 0.75
 	_label(right, "LA TUA CARRIERA PARTE DA QUI", 15, GREEN)
@@ -306,6 +308,37 @@ func _show_result(gf: int, ga: int) -> void:
 	_label(box, "%d     —     %d" % [gf, ga], 38, GOLD)
 	_label(box, "PUNTI %d  ·  BILANCIO € %s  ·  TIFOSI %s" % [points, str(budget), str(fans)], 14, MUTED)
 	_button(box, "TORNA AL CLUB", show_dashboard, true)
+
+func load_game() -> void:
+	var file := FileAccess.open("user://career_save.json", FileAccess.READ)
+	if file == null:
+		_notice("Nessun salvataggio disponibile.")
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		_notice("Il salvataggio non è valido.")
+		return
+	var data: Dictionary = parsed
+	club_name = str(data.get("club_name", "ASD Nuovo Club"))
+	town_name = str(data.get("town_name", "Il tuo paese"))
+	season = int(data.get("season", 1))
+	budget = int(data.get("budget", 12000))
+	fans = int(data.get("fans", 85))
+	points = int(data.get("points", 0))
+	played = int(data.get("played", 0))
+	wins = int(data.get("wins", 0))
+	draws = int(data.get("draws", 0))
+	losses = int(data.get("losses", 0))
+	roster.clear()
+	var saved_roster: Variant = data.get("roster", [])
+	if saved_roster is Array:
+		for player in saved_roster:
+			if player is Dictionary:
+				roster.append(player)
+	if roster.is_empty():
+		_create_roster()
+	show_dashboard()
 
 func save_game() -> void:
 	var data := {"club_name": club_name, "town_name": town_name, "season": season, "budget": budget, "fans": fans, "points": points, "played": played, "wins": wins, "draws": draws, "losses": losses, "roster": roster}
