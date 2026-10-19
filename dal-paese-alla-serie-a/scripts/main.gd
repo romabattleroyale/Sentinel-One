@@ -304,14 +304,14 @@ func play_match() -> void:
 		"Offensivo":
 			attack_bonus = 0.085
 			defense_bonus = -0.065
-		match selected_formation:
-			"4-3-3": attack_bonus += 0.025
-			"3-5-2":
-				attack_bonus += 0.015
-				defense_bonus -= 0.01
-			"4-2-3-1":
-				attack_bonus += 0.015
-				defense_bonus += 0.015
+	match selected_formation:
+		"4-3-3": attack_bonus += 0.025
+		"3-5-2":
+			attack_bonus += 0.015
+			defense_bonus -= 0.01
+		"4-2-3-1":
+			attack_bonus += 0.015
+			defense_bonus += 0.015
 	var roll := randf() + (edge - 5.2) * 0.07
 	var gf := 0
 	var ga := 0
