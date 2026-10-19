@@ -382,9 +382,11 @@ func load_game() -> void:
 func save_game() -> void:
 	var data := {"club_name": club_name, "town_name": town_name, "season": season, "budget": budget, "fans": fans, "points": points, "played": played, "wins": wins, "draws": draws, "losses": losses, "selected_formation": selected_formation, "selected_tactic": selected_tactic, "roster": roster}
 	var file := FileAccess.open("user://career_save.json", FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(data, "\t"))
-		file.close()
+	if file == null:
+		_notice("Salvataggio non riuscito. Controlla lo spazio disponibile sul dispositivo.")
+		return
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
 	_notice("Carriera salvata sul dispositivo.")
 
 func _notice(message: String) -> void:
