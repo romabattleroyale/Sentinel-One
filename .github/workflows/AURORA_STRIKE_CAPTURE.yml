@@ -36,7 +36,7 @@ jobs:
           Xvfb :99 -screen 0 1280x1280x24 -ac +extension GLX > ../artifacts/aurora-runtime/xvfb.log 2>&1 &
           echo $! > ../artifacts/aurora-runtime/xvfb.pid
           export DISPLAY=:99
-          godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy -- --view=top > ../artifacts/aurora-runtime/godot-runtime.log 2>&1 &
+          AURORA_CAPTURE=1 godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > ../artifacts/aurora-runtime/godot-runtime.log 2>&1 &
           GAME_PID=$!
           cleanup() {
             kill "$GAME_PID" 2>/dev/null || true
