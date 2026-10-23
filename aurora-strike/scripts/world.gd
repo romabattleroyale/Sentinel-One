@@ -27,6 +27,28 @@ func _mat(color: Color, roughness: float = 0.85, metallic: float = 0.0) -> Stand
 	m.metallic = metallic
 	return m
 
+func _terrain_mat(base_color: Color, accent_color: Color, seed_value: int) -> StandardMaterial3D:
+	# Generated albedo maps give biomes natural color variation without external dependencies.
+	var noise := FastNoiseLite.new()
+	noise.seed = seed_value
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.032
+	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	noise.fractal_octaves = 4
+	noise.fractal_lacunarity = 2.0
+	var image := Image.create(192,192,false,Image.FORMAT_RGBA8)
+	for y in range(192):
+		for x in range(192):
+			var broad := noise.get_noise_2d(float(x),float(y))
+			var fine := noise.get_noise_2d(float(x)*2.7+19.0,float(y)*2.7-13.0)
+			var value := clampf(0.50 + broad*0.34 + fine*0.14,0.0,1.0)
+			image.set_pixel(x,y,base_color.lerp(accent_color,value))
+	var m := _mat(Color.WHITE,0.98,0.0)
+	m.albedo_texture = ImageTexture.create_from_image(image)
+	m.uv1_scale = Vector3.ONE
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return m
+
 func _box(parent: Node3D, node_name: String, size: Vector3, pos: Vector3, material: Material, collision := false) -> MeshInstance3D:
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -101,8 +123,10 @@ func _build_island_surface() -> void:
 	])
 	var triangles := Geometry2D.triangulate_polygon(outline)
 	var vertices := PackedVector3Array()
+	var land_uv := PackedVector2Array()
 	for point in outline:
 		vertices.append(Vector3(point.x,0.08,point.y))
+		land_uv.append(Vector2(point.x/48.0,point.y/48.0))
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	var normals := PackedVector3Array()
@@ -110,8 +134,9 @@ func _build_island_surface() -> void:
 		normals.append(Vector3.UP)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = land_uv
 	arrays[Mesh.ARRAY_INDEX] = triangles
-	var land_material := _mat(Color(0.20,0.34,0.18),0.96)
+	var land_material := _terrain_mat(Color(0.12,0.25,0.12),Color(0.29,0.39,0.17),211)
 	land_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var island_mesh := ArrayMesh.new()
 	island_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
@@ -138,18 +163,52 @@ func _build_island_surface() -> void:
 
 
 func _patch(node_name: String, size: Vector2, center: Vector2, material: Material, y: float = 0.105) -> void:
-	_box(self, node_name, Vector3(size.x, 0.035, size.y), Vector3(center.x, y, center.y), material)
+	# Rough-edged mesh patches look organic in the map overview rather than like rectangles.
+	const SEGMENTS := 32
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uv := PackedVector2Array()
+	var indices := PackedInt32Array()
+	vertices.append(Vector3.ZERO)
+	normals.append(Vector3.UP)
+	uv.append(Vector2.ZERO)
+	for i in range(SEGMENTS):
+		var angle := TAU * float(i) / float(SEGMENTS)
+		var jitter := rng.randf_range(0.88,1.12)
+		var local_x := cos(angle) * size.x * 0.5 * jitter
+		var local_z := sin(angle) * size.y * 0.5 * jitter
+		vertices.append(Vector3(local_x,0,local_z))
+		normals.append(Vector3.UP)
+		uv.append(Vector2(local_x/42.0,local_z/42.0))
+	for i in range(SEGMENTS):
+		indices.append(0)
+		indices.append(i+1)
+		indices.append(((i+1)%SEGMENTS)+1)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uv
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var patch_mesh := ArrayMesh.new()
+	patch_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var patch := MeshInstance3D.new()
+	patch.name = node_name
+	patch.mesh = patch_mesh
+	patch.position = Vector3(center.x,y,center.y)
+	patch.material_override = material
+	add_child(patch)
 
 func _build_biomes() -> void:
 	# Color-coded landform zones break up the giant flat center into recognizable regions.
-	var meadow := _mat(Color(0.20,0.37,0.19))
-	var forest_floor := _mat(Color(0.105,0.25,0.13))
-	var snow := _mat(Color(0.73,0.79,0.82))
-	var rock := _mat(Color(0.35,0.37,0.37))
-	var sand := _mat(Color(0.72,0.57,0.34))
-	var red_sand := _mat(Color(0.65,0.28,0.14))
-	var farm := _mat(Color(0.39,0.42,0.20))
-	var industry := _mat(Color(0.27,0.30,0.29))
+	var meadow := _terrain_mat(Color(0.13,0.29,0.12),Color(0.31,0.42,0.18),101)
+	var forest_floor := _terrain_mat(Color(0.045,0.15,0.075),Color(0.15,0.29,0.11),102)
+	var snow := _terrain_mat(Color(0.67,0.73,0.77),Color(0.96,0.98,0.98),103)
+	var rock := _terrain_mat(Color(0.22,0.23,0.22),Color(0.44,0.43,0.40),104)
+	var sand := _terrain_mat(Color(0.58,0.42,0.24),Color(0.84,0.68,0.40),105)
+	var red_sand := _terrain_mat(Color(0.45,0.16,0.08),Color(0.78,0.35,0.17),106)
+	var farm := _terrain_mat(Color(0.27,0.29,0.12),Color(0.52,0.47,0.20),107)
+	var industry := _terrain_mat(Color(0.15,0.17,0.17),Color(0.33,0.34,0.31),108)
 	_patch("Green_Hills_Biome",Vector2(570,480),Vector2(-430,320),meadow)
 	_patch("Shadow_Forest_Biome",Vector2(470,480),Vector2(320,-410),forest_floor)
 	_patch("Snowfield_Biome",Vector2(470,390),Vector2(-565,-650),snow)
