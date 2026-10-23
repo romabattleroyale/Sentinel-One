@@ -23,6 +23,21 @@ jobs:
           version: 4.5.1
           use-dotnet: false
       - name: Verify editor import and script parsing
-        run: godot --headless --editor --path . --quit
-      - name: Launch main scene headlessly
-        run: godot --headless --path . --quit-after 5
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee /tmp/aurora-editor.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-editor.log; then
+            echo 'Godot editor reported script/resource errors.'
+            exit 1
+          fi
+      - name: Launch main scene headlessly and reject runtime errors
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --quit-after 5 2>&1 | tee /tmp/aurora-runtime.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-runtime.log; then
+            echo 'AURORA STRIKE main scene failed runtime validation.'
+            exit 1
+          fi
+          grep -q 'AURORA_RUNTIME_READY' /tmp/aurora-runtime.log
