@@ -769,10 +769,14 @@ func _build_city_blocks() -> void:
 			block.name = "Block_%d_%d" % [gx,gz]
 			block.position = Vector3(cx,0,cz)
 			add_child(block)
-			for i in range(rng.randi_range(5,6)):
+			var lot_count := 6 if gx == 2 and gz == 2 else rng.randi_range(5,6)
+			for i in range(lot_count):
 				var slot_pos: Vector2 = building_slots[i]
 				var bx: float = slot_pos.x + rng.randf_range(-4.0,4.0)
 				var bz: float = slot_pos.y + rng.randf_range(-4.0,4.0)
+				if gx == 2 and gz == 2:
+					_build_commercial_tower(block,i,bx,bz)
+					continue
 				# Prefer detailed baked Roman architecture from the existing project library.
 				# These scenes carry facade meshes, roof details, UVs, texture and collision resources.
 				var archetype_id: int = absi(gx*17 + gz*11 + i*7) % 27
@@ -800,6 +804,36 @@ func _build_city_blocks() -> void:
 						_box(block,"WindowBand",Vector3(w*0.68,0.85,0.22),Vector3(bx,h/2+0.1+float(floor_idx)*3.5,bz+side*(d/2+0.13)),glass)
 				if rng.randf() > 0.45:
 					_box(block,"Shopfront",Vector3(w*0.72,2.6,0.28),Vector3(bx,1.7,bz+d/2+0.18),glass)
+
+func _build_commercial_tower(parent: Node3D, tower_id: int, x: float, z: float) -> void:
+	var heights: Array[float] = [58.0,82.0,94.0,46.0,70.0,54.0]
+	var widths: Array[float] = [30.0,34.0,29.0,35.0,31.0,37.0]
+	var depths: Array[float] = [28.0,31.0,33.0,30.0,35.0,29.0]
+	var h: float = heights[tower_id]
+	var w: float = widths[tower_id]
+	var d: float = depths[tower_id]
+	var facade := _mat(Color(0.20,0.31,0.36),0.34,0.30)
+	var window := _mat(Color(0.07,0.19,0.25),0.22,0.24)
+	var frame := _mat(Color(0.58,0.60,0.57),0.68,0.12)
+	var roof_mat := _mat(Color(0.20,0.23,0.25),0.48,0.25)
+	_box(parent,"Commercial_Tower_%d" % tower_id,Vector3(w,h,d),Vector3(x,h*0.5+0.1,z),facade,true)
+	_box(parent,"Commercial_Roof_%d" % tower_id,Vector3(w+1.2,1.2,d+1.2),Vector3(x,h+0.75,z),roof_mat)
+	# A podium and repetitive glazing bands make these visibly different from the Roman residential blocks.
+	_box(parent,"Commercial_Podium_%d" % tower_id,Vector3(w+1,3.8,d+1),Vector3(x,2.0,z),frame)
+	_box(parent,"Commercial_Entry_%d" % tower_id,Vector3(w*0.52,2.5,0.3),Vector3(x,2.05,z+d*0.5+0.66),window)
+	for floor_idx in range(1,int(h/4.5)):
+		var fy: float = 3.4+float(floor_idx)*4.5
+		_box(parent,"Office_Windows_Front",Vector3(w*0.78,1.65,0.24),Vector3(x,fy,z+d*0.5+0.15),window)
+		_box(parent,"Office_Windows_Back",Vector3(w*0.78,1.65,0.24),Vector3(x,fy,z-d*0.5-0.15),window)
+		_box(parent,"Office_Windows_Left",Vector3(0.24,1.65,d*0.76),Vector3(x-w*0.5-0.15,fy,z),window)
+		_box(parent,"Office_Windows_Right",Vector3(0.24,1.65,d*0.76),Vector3(x+w*0.5+0.15,fy,z),window)
+		if floor_idx % 4 == 0:
+			_box(parent,"Office_Facade_Belt_F",Vector3(w+0.4,0.35,0.45),Vector3(x,fy+1.1,z+d*0.5),frame)
+			_box(parent,"Office_Facade_Belt_B",Vector3(w+0.4,0.35,0.45),Vector3(x,fy+1.1,z-d*0.5),frame)
+	for unit in range(3):
+		_box(parent,"Rooftop_HVAC",Vector3(4.5,2.4,3.5),Vector3(x-6.0+float(unit)*6.0,h+2.6,z-3.0),frame)
+	if tower_id == 2:
+		_box(parent,"Office_Antenna",Vector3(0.7,12.0,0.7),Vector3(x,h+7.0,z),roof_mat)
 
 func _build_landmarks() -> void:
 	var stone := _mat(Color(0.69,0.62,0.49))
