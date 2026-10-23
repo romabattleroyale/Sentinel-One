@@ -660,7 +660,9 @@ func _apply_capture_view() -> void:
 	var args := OS.get_cmdline_user_args()
 	var view := "player"
 	if args.size() > 0 or OS.get_environment("AURORA_CAPTURE") == "1":
+		get_window().mode = Window.MODE_WINDOWED
 		get_window().size = Vector2i(1280,1280)
+		get_window().position = Vector2i(0,0)
 	for arg in args:
 		if arg.begins_with("--view="):
 			view = arg.trim_prefix("--view=")
@@ -683,6 +685,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_5: _set_capture_view("coast")
 
 func _set_capture_view(view: String) -> void:
+	print("AURORA_VIEW | ", view, " | ", get_window().size, " | ", get_window().position)
 	if capture_camera == null:
 		return
 	if view == "top" and map_overlay == null:
