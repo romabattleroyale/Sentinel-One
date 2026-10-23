@@ -429,7 +429,7 @@ func _build_city_blocks() -> void:
 				var bz := rng.randf_range(-48,48)
 				# Prefer detailed baked Roman architecture from the existing project library.
 				# These scenes carry facade meshes, roof details, UVs, texture and collision resources.
-				var archetype_id := abs(gx*17 + gz*11 + i*7) % 27
+				var archetype_id: int = absi(gx*17 + gz*11 + i*7) % 27
 				var archetype_path := "res://baked_city/archetypes_587/archetype_%02d.tscn" % archetype_id
 				var archetype := load(archetype_path) as PackedScene
 				if archetype != null and rng.randf() < 0.82:
