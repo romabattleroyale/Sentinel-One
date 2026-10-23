@@ -479,7 +479,7 @@ func _build_map_overlay_labels() -> void:
 		canvas.add_child(row_label)
 	var title := Label.new()
 	title.text = "MAPPA DI GIOCO"
-	title.position = Vector2(38,1138)
+	title.position = Vector2(38,1120)
 	title.size = Vector2(360,58)
 	title.add_theme_font_size_override("font_size",38)
 	title.add_theme_color_override("font_color",Color(1.0,0.98,0.91))
@@ -488,7 +488,7 @@ func _build_map_overlay_labels() -> void:
 	canvas.add_child(title)
 	var subtitle := Label.new()
 	subtitle.text = "2000 × 2000 m"
-	subtitle.position = Vector2(44,1190)
+	subtitle.position = Vector2(44,1172)
 	subtitle.size = Vector2(200,26)
 	subtitle.add_theme_font_size_override("font_size",18)
 	subtitle.add_theme_color_override("font_color",Color(0.83,0.89,0.93))
@@ -505,7 +505,7 @@ func _build_map_overlay_labels() -> void:
 	canvas.add_child(compass)
 	var scale_label := Label.new()
 	scale_label.text = "0      250     500             1.000                    2.000 m\n|---------|---------|----------------|------------------------|"
-	scale_label.position = Vector2(770,1200)
+	scale_label.position = Vector2(760,1180)
 	scale_label.size = Vector2(465,60)
 	scale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	scale_label.add_theme_font_size_override("font_size",13)
@@ -532,7 +532,7 @@ func _build_map_overlay_labels() -> void:
 	for item in labels:
 		var label := Label.new()
 		label.text = item[0]
-		label.position = Vector2(520.0+float(item[1])*0.55,623.0+float(item[2])*0.55)
+		label.position = Vector2(640.0+float(item[1])*0.60-122.5,647.0+float(item[2])*0.60-17.0)
 		label.size = Vector2(245,34)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
