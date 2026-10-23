@@ -45,7 +45,8 @@ jobs:
               sleep 1
             done
             if [ "$READY" -ne 1 ]; then cat ../artifacts/aurora-runtime/godot-$VIEW.log; kill $GAME_PID || true; exit 1; fi
-            sleep 2
+            # Godot logs _ready before the first rendered frame; let the window finish presenting.
+            sleep 8
             ffmpeg -y -f x11grab -video_size 1280x1280 -i :99.0 -frames:v 1 ../artifacts/aurora-runtime/aurora-$VIEW.png
             if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' ../artifacts/aurora-runtime/godot-$VIEW.log; then
               cat ../artifacts/aurora-runtime/godot-$VIEW.log
