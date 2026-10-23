@@ -240,7 +240,7 @@ def glb_export(objects,path):
   if o and o.name in bpy.data.objects: o.hide_set(False);o.select_set(True);valid.append(o)
  if not valid:return False
  bpy.context.view_layer.objects.active=valid[0]
- bpy.ops.export_scene.gltf(filepath=str(path),export_format="GLB",use_selection=True,export_apply=True,export_cameras=False,export_lights=False)
+ bpy.ops.export_scene.gltf(filepath=str(path),export_format="GLB",use_selection=True,export_apply=True,export_cameras=False,export_lights=False,export_yup=False)
  bpy.ops.object.select_all(action="DESELECT")
  return path.exists() and path.stat().st_size>64
 def export_tiles(terrain,outdir,rows):
@@ -263,12 +263,16 @@ def export_tiles(terrain,outdir,rows):
      a=zz*21+xx; b=a+1; c=a+21; d=c+1
      if valid[a] and valid[b] and valid[c] and valid[d]:
       tf.extend([(a,c,b),(b,c,d)])
-   if not tf: continue
+   tile_type="terrain_tile"
+   if not tf:
+    # Keep all 64 sectors represented. Empty land sectors carry a simple deep-ocean surface.
+    tv=[(0,-0.8,0),(TILE,-0.8,0),(TILE,-0.8,TILE),(0,-0.8,TILE)]
+    tf=[(0,2,1),(0,3,2)];cols=None;tile_type="water_tile"
    name="Tile_X%02d_Z%02d"%(i,j);col=collection("Export_"+name)
-   tile=mesh(name,tv,tf,col,[M["grass"]],colors=cols)
-   tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0
+   tile=mesh(name,tv,tf,col,[M["deep"] if tile_type=="water_tile" else M["grass"]],colors=cols)
+   tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0;tile["kind"]=tile_type
    path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
-   rows.append(["terrain_tile",name,str(path),i,j,x0,z0,x1,z1,"procedural original; 12.5m grid; estimated heights; verify transform once in Godot"])
+   rows.append([tile_type,name,str(path),i,j,x0,z0,x1,z1,"procedural original; 12.5m grid; estimated heights; verify transform once in Godot"])
    bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col)
    log(name+" exported")
  return paths
