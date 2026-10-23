@@ -1,0 +1,108 @@
+name: AURORA STRIKE — Godot Linux build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "aurora-strike/**"
+      - ".github/workflows/aurora-strike-godot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify project files are present
+        shell: bash
+        run: |
+          if [ ! -f "aurora-strike/project.godot" ]; then
+            echo "::error::Missing aurora-strike/project.godot. Upload the AURORA STRIKE Godot project folder to this path first."
+            echo "Repository currently contains the legacy Sentinel-One Android project, not the Godot game."
+            exit 1
+          fi
+
+      - name: Download Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/godot"
+          curl -fL --retry 3 \
+            "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip" \
+            -o "$RUNNER_TEMP/godot/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT_BIN="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot_*' | head -n 1)"
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version
+
+      - name: Import project and validate scripts
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path aurora-strike --editor --import --quit 2>&1 | tee godot-import.log
+          "$GODOT_BIN" --headless --path aurora-strike --editor --quit 2>&1 | tee godot-editor-check.log
+
+      - name: Run main scene briefly
+        shell: bash
+        run: |
+          set +e
+          timeout 45s "$GODOT_BIN" --headless --path aurora-strike --verbose 2>&1 | tee godot-runtime.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ] && [ "$status" -ne 124 ]; then
+            echo "::error::Headless runtime exited with status $status"
+            exit "$status"
+          fi
+
+      - name: Export Linux executable when preset exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "aurora-strike/export_presets.cfg" ]; then
+            echo "No export_presets.cfg found; packaging project sources and logs instead."
+            exit 0
+          fi
+          if ! grep -q 'name="Linux' aurora-strike/export_presets.cfg; then
+            echo "No Linux export preset found; packaging project sources and logs instead."
+            exit 0
+          fi
+          curl -fL --retry 3 \
+            "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz" \
+            -o "$RUNNER_TEMP/godot/templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/godot/templates"
+          template_dir="$(find "$RUNNER_TEMP/godot/templates" -maxdepth 1 -type d -name '4.7.2*' | head -n 1)"
+          if [ -n "$template_dir" ]; then
+            cp -a "$template_dir/." "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+          else
+            find "$RUNNER_TEMP/godot/templates" -type f -name '*.tpz' -o -type f -name '*.zip'
+            echo "::error::Could not locate Godot export templates after download."
+            exit 1
+          fi
+          mkdir -p build
+          "$GODOT_BIN" --headless --path aurora-strike --export-debug "Linux" build/AuroraStrike.x86_64
+
+      - name: Prepare diagnostic package
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p build
+          cp -f godot-*.log build/ 2>/dev/null || true
+          if [ -d aurora-strike ]; then
+            tar --exclude='.godot' --exclude='build' -czf build/aurora-strike-source.tar.gz aurora-strike || true
+          fi
+
+      - name: Upload build, source snapshot and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-strike-linux-build-and-diagnostics
+          path: build/
+          if-no-files-found: error
+          retention-days: 14
