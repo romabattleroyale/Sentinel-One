@@ -38,11 +38,24 @@ jobs:
             echo "Capturing runtime view: $VIEW"
             godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy -- --view=$VIEW > ../artifacts/aurora-runtime/godot-$VIEW.log 2>&1 &
             GAME_PID=$!
-            sleep 7
+            READY=0
+            for ATTEMPT in $(seq 1 30); do
+              if grep -q 'AURORA_RUNTIME_READY' ../artifacts/aurora-runtime/godot-$VIEW.log; then READY=1; break; fi
+              if ! kill -0 $GAME_PID 2>/dev/null; then break; fi
+              sleep 1
+            done
+            if [ "$READY" -ne 1 ]; then cat ../artifacts/aurora-runtime/godot-$VIEW.log; kill $GAME_PID || true; exit 1; fi
+            sleep 2
             ffmpeg -y -f x11grab -video_size 1280x1280 -i :99.0 -frames:v 1 ../artifacts/aurora-runtime/aurora-$VIEW.png
+            if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' ../artifacts/aurora-runtime/godot-$VIEW.log; then
+              cat ../artifacts/aurora-runtime/godot-$VIEW.log
+              kill $GAME_PID || true
+              exit 1
+            fi
+            test -s ../artifacts/aurora-runtime/aurora-$VIEW.png
+            test "$(stat -c%s ../artifacts/aurora-runtime/aurora-$VIEW.png)" -gt 25000
             kill $GAME_PID || true
             wait $GAME_PID || true
-            test -s ../artifacts/aurora-runtime/aurora-$VIEW.png
             sleep 1
           done
       - name: Upload actual runtime evidence
