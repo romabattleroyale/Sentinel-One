@@ -423,6 +423,14 @@ func _build_nature() -> void:
 	# Broken rocky ridge and red mesas in the southern biomes.
 	for p in [Vector2(-240,700),Vector2(-95,760),Vector2(70,720),Vector2(170,775),Vector2(520,680),Vector2(640,730),Vector2(760,620),Vector2(680,820)]:
 		_mountain(p,rng.randf_range(38,70),rng.randf_range(35,90),false,p.x>400)
+	# Northern woodland fills the broad green transition between the alpine range and the lake basin.
+	for i in range(125):
+		var x := rng.randf_range(-445.0,175.0)
+		var z := rng.randf_range(-865.0,-515.0)
+		var mountain_clearance := Vector2(x,z).distance_to(Vector2(-620,-690))
+		var lake_clearance := Vector2(x,z).distance_to(Vector2(-250,-455))
+		if mountain_clearance > 165.0 and lake_clearance > 150.0 and not _is_urban_block(x,z):
+			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.55,1.0))
 	# Dense shadow forest. Tree clusters are deterministic to keep the island layout stable.
 	for i in range(180):
 		var x := rng.randf_range(115,520)
