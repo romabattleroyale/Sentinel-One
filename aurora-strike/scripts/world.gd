@@ -3,6 +3,9 @@ const MAP_SIZE := 2000.0
 const BLOCK_SPACING := 170.0
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
+var capture_camera: Camera3D
+var map_overlay: CanvasLayer
+var current_capture_view := "player"
 
 func _ready() -> void:
 	rng.seed = 271023
@@ -434,6 +437,7 @@ func _build_map_overlay_labels() -> void:
 	canvas.name = "Top_Down_Map_Labels"
 	canvas.layer = 4
 	add_child(canvas)
+	map_overlay = canvas
 	# Atlas-style coordinates inspired by the supplied map reference.
 	var grid_left := 50.0
 	var grid_top := 58.0
@@ -658,27 +662,50 @@ func _apply_capture_view() -> void:
 	for arg in args:
 		if arg.begins_with("--view="):
 			view = arg.trim_prefix("--view=")
-	var camera := get_node_or_null("Player/CameraPivot/Camera3D") as Camera3D
-	if camera == null:
+	capture_camera = get_node_or_null("Player/CameraPivot/Camera3D") as Camera3D
+	if capture_camera == null:
+		push_error("Capture camera was not created.")
 		return
+	if view == "top":
+		_build_map_overlay_labels()
+	_set_capture_view(view)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_1: _set_capture_view("top")
+			KEY_2: _set_capture_view("player")
+			KEY_3: _set_capture_view("station")
+			KEY_4: _set_capture_view("industrial")
+			KEY_5: _set_capture_view("coast")
+
+func _set_capture_view(view: String) -> void:
+	if capture_camera == null:
+		return
+	current_capture_view = view
+	if map_overlay != null:
+		map_overlay.visible = (view == "top")
+	capture_camera.current = true
 	if view == "player":
+		capture_camera.set_as_top_level(false)
+		capture_camera.position = Vector3(0,2.4,7.5)
+		capture_camera.rotation_degrees = Vector3(-12,0,0)
 		return
-	camera.set_as_top_level(true)
+	capture_camera.set_as_top_level(true)
 	match view:
 		"top":
-			camera.global_position = Vector3(0, 1550, 0)
-			camera.look_at(Vector3(0, 0, 0), Vector3(0, 0, -1))
-			camera.fov = 70
-			_build_map_overlay_labels()
+			capture_camera.global_position = Vector3(0,1550,0)
+			capture_camera.look_at(Vector3(0,0,0),Vector3(0,0,-1))
+			capture_camera.fov = 70
 		"station":
-			camera.global_position = Vector3(220, 190, 300)
-			camera.look_at(Vector3(0, 8, 0))
-			camera.fov = 65
+			capture_camera.global_position = Vector3(220,190,300)
+			capture_camera.look_at(Vector3(0,8,0))
+			capture_camera.fov = 65
 		"industrial":
-			camera.global_position = Vector3(-470, 180, 420)
-			camera.look_at(Vector3(0, 15, 170))
-			camera.fov = 68
+			capture_camera.global_position = Vector3(-470,180,420)
+			capture_camera.look_at(Vector3(0,15,170))
+			capture_camera.fov = 68
 		"coast":
-			camera.global_position = Vector3(-650, 260, 450)
-			camera.look_at(Vector3(-800, 0, 0))
-			camera.fov = 68
+			capture_camera.global_position = Vector3(-650,260,450)
+			capture_camera.look_at(Vector3(-800,0,0))
+			capture_camera.fov = 68
