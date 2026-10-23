@@ -827,19 +827,19 @@ func _build_landmarks() -> void:
 	var canopy_mat := _mat(Color(0.25,0.29,0.31),0.46,0.27)
 	var rail_mat := _mat(Color(0.10,0.12,0.13),0.36,0.58)
 	var sleeper_mat := _mat(Color(0.22,0.18,0.13),0.92)
-	for platform_z in [-66.0,-38.0,38.0,66.0]:
+	for platform_z in [-58.0,-32.0,32.0,58.0]:
 		_box(station,"Railway_Platform",Vector3(155,0.65,12),Vector3(0,0.48,platform_z),platform_mat,true)
 		_box(station,"Platform_Canopy",Vector3(156,0.75,12),Vector3(0,9.0,platform_z),canopy_mat)
 		for px in range(-70,71,35):
 			_box(station,"Platform_Support",Vector3(1.4,8.0,1.4),Vector3(float(px),4.4,platform_z),canopy_mat)
 			_box(station,"Platform_Light",Vector3(4.5,0.25,1.3),Vector3(float(px),9.45,platform_z),_mat(Color(0.87,0.81,0.59)))
 	# Four parallel tracks and short cross-sleepers make the station readable from above.
-	for track_z in [-80.0,-52.0,52.0,80.0]:
+	for track_z in [-68.0,-44.0,44.0,68.0]:
 		_box(station,"Steel_Rail_Left",Vector3(158,0.28,0.38),Vector3(0,0.87,track_z-2.0),rail_mat)
 		_box(station,"Steel_Rail_Right",Vector3(158,0.28,0.38),Vector3(0,0.87,track_z+2.0),rail_mat)
 		for px in range(-76,77,8):
 			_box(station,"Rail_Sleeper",Vector3(2.5,0.18,5.8),Vector3(float(px),0.64,track_z),sleeper_mat)
-	for pz in [-47.0,-19.0,19.0,47.0]:
+	for pz in [-63.0,-37.0,37.0,63.0]:
 		_box(station,"Yellow_Platform_Edge",Vector3(152,0.12,0.65),Vector3(0,0.86,pz),_mat(Color(0.93,0.75,0.22)))
 	_box(self,"Civic_Tower",Vector3(28,96,28),Vector3(-270,49,270),_mat(Color(0.48,0.53,0.55)),true)
 	for y in range(12,94,12):
