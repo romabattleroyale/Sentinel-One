@@ -222,3 +222,102 @@ def make_poi(poi,root):
   for i in range(8):
    dx=-72+i*20;cn("UmbrellaPost"+str(i),dx,4,-25,.7,5,M["wood"],6,.35);sphere("BeachUmbrella"+str(i),(x+dx,y+7,z-25),(4,1,4),M["yellow"] if i%2 else M["red"],c)
  return c
+
+# --- exporter / entry point ---
+def create_overview(root):
+ scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.02,.07,.15,1)
+ bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=2.0;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
+ bpy.ops.object.camera_add(location=(0,2600,0),rotation=(math.radians(90),0,0));cam=bpy.context.object;cam.name="AS_Overview_Camera";cam.data.type="ORTHO";cam.data.ortho_scale=2250;scene.camera=cam;relink(cam,root)
+ try: scene.render.engine="BLENDER_EEVEE_NEXT"
+ except: scene.render.engine="BLENDER_EEVEE"
+ scene.render.resolution_x=1600;scene.render.resolution_y=1600;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
+ try:scene.view_settings.view_transform="AgX"
+ except:pass
+ return cam
+def glb_export(objects,path):
+ bpy.ops.object.select_all(action="DESELECT"); valid=[]
+ for o in objects:
+  if o and o.name in bpy.data.objects: o.hide_set(False);o.select_set(True);valid.append(o)
+ if not valid:return False
+ bpy.context.view_layer.objects.active=valid[0]
+ bpy.ops.export_scene.gltf(filepath=str(path),export_format="GLB",use_selection=True,export_apply=True,export_cameras=False,export_lights=False)
+ bpy.ops.object.select_all(action="DESELECT")
+ return path.exists() and path.stat().st_size>64
+def export_tiles(terrain,outdir,rows):
+ log("Clipping terrain into 64 250m tile GLBs")
+ verts=[tuple(v.co) for v in terrain.data.vertices]; faces=[tuple(p.vertices) for p in terrain.data.polygons]; paths=[]
+ for j in range(N):
+  for i in range(N):
+   x0=-1000+i*TILE;z0=-1000+j*TILE;x1=x0+TILE;z1=z0+TILE
+   tv=[];tf=[];lut={}
+   def vi(p):
+    key=tuple(round(k,5) for k in p)
+    if key not in lut:lut[key]=len(tv);tv.append((p[0]-x0,p[1],p[2]-z0))
+    return lut[key]
+   for face in faces:
+    tri=[verts[k] for k in face]
+    if max(v[0] for v in tri)<x0 or min(v[0] for v in tri)>x1 or max(v[2] for v in tri)<z0 or min(v[2] for v in tri)>z1:continue
+    if all(x0-1e-4<=v[0]<=x1+1e-4 and z0-1e-4<=v[2]<=z1+1e-4 for v in tri):
+     tf.append(tuple(vi(v) for v in tri))
+   if not tf:
+    # fallback low-density local grid for coastline-only tiles
+    for zz in range(13):
+     for xx in range(13):
+      wx=x0+xx*TILE/12;wz=z0+zz*TILE/12
+      if inside(wx,wz):lut[(xx,zz)]=len(tv);tv.append((wx-x0,height(wx,wz),wz-z0))
+    for (xx,zz),a in list(lut.items()):
+     if not isinstance(xx,int):continue
+     if (xx+1,zz) in lut and (xx,zz+1) in lut and (xx+1,zz+1) in lut:tf.extend([(a,lut[(xx,zz+1)],lut[(xx+1,zz)]),(lut[(xx+1,zz)],lut[(xx,zz+1)],lut[(xx+1,zz+1)])])
+   if not tf:continue
+   name="Tile_X%02d_Z%02d"%(i,j);col=collection("Export_"+name);tile=mesh(name,tv,tf,col,[M["grass"]])
+   tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0
+   path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
+   rows.append(["terrain_tile",name,str(path),i,j,x0,z0,x1,z1,"procedural original; estimated heights; import at manifest origin only once"])
+   bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col);log(name+" exported")
+ return paths
+def main():
+ OUT.mkdir(parents=True,exist_ok=True)
+ for folder in ("tiles","poi","preview"):(OUT/folder).mkdir(parents=True,exist_ok=True)
+ bpy.ops.object.select_all(action="SELECT");bpy.ops.object.delete(use_global=False)
+ for c in list(bpy.data.collections):
+  if c.name!=bpy.context.scene.collection.name:bpy.data.collections.remove(c)
+ init_mats();root=collection("AURORA_STRIKE_WORLD");tc=collection("Terrain_Source",root);wc=collection("Water_and_Coast",root);rc=collection("Roads_and_Bridges",root);pc=collection("POI_Registry",root)
+ terrain=make_terrain(tc);build_water(wc);paths_between(rc);poi_cols=[]
+ for idx,poi in enumerate(POIS,1):log("Building POI %d/16: %s"%(idx,poi[1]));poi_cols.append((poi,make_poi(poi,pc)))
+ # Batch trees by biome to reduce object count.
+ veg=collection("Vegetation_Batches",root)
+ for name,cx,cz,count,ma in [("Bosco_Ombra",227,-703,220,M["forest"]),("Colline_Verdi",-594,39,110,M["hill"])]:
+  v=[];f=[];mi=[]
+  for k in range(count):
+   x=cx+random.uniform(-180,180);z=cz+random.uniform(-135,135)
+   if not inside(x,z):continue
+   y=height(x,z);r=random.uniform(2.5,5);h=random.uniform(8,17);base=len(v)
+   v.extend([(x-r*.2,y,z),(x+r*.2,y,z),(x+r*.13,y+h*.5,z),(x-r*.13,y+h*.5,z),(x-r,y+h*.45,z),(x+r,y+h*.45,z),(x,y+h,z)])
+   f.extend([(base,base+1,base+2,base+3),(base+4,base+5,base+6)]);mi.extend([0,1])
+  mesh(name+"_TreeBatch",v,f,veg,[M["wood"],ma],mi)
+ camera=create_overview(root)
+ source=OUT/"AURORA_STRIKE_Map_Source.blend";bpy.ops.wm.save_as_mainfile(filepath=str(source));log("Saved editable Blender source")
+ rows=[];tile_paths=export_tiles(terrain,OUT,rows)
+ poi_paths=[]
+ for poi,c in poi_cols:
+  pid,label,x,z,kind=poi;dups=[]
+  for src in list(c.objects):
+   d=src.copy()
+   if src.data:d.data=src.data.copy()
+   bpy.context.scene.collection.objects.link(d);d.location.x-=x;d.location.z-=z;dups.append(d)
+  path=OUT/"poi"/(pid+".glb");glb_export(dups,path);poi_paths.append(path)
+  for d in dups:
+   data=d.data;bpy.data.objects.remove(d,do_unlink=True)
+   if data and data.users==0 and isinstance(data,bpy.types.Mesh):bpy.data.meshes.remove(data)
+  rows.append(["poi_module",pid,str(path),"","",x,z,x,z,"procedural original; estimated concept coordinates"])
+ try:glb_export([o for o in bpy.context.scene.objects if o.type in {"MESH","CURVE"}],OUT/"AURORA_STRIKE_Master_Preview.glb")
+ except Exception as e:log("Master GLB export warning: "+str(e))
+ scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")
+ try:bpy.ops.render.render(write_still=True)
+ except Exception as e:log("Overview render warning: "+str(e))
+ with open(OUT/"manifest.csv","w",newline="",encoding="utf-8") as f:
+  w=csv.writer(f);w.writerow(["type","id","file","tile_x","tile_z","origin_x","origin_z","max_x","max_z","provenance"]);w.writerows(rows)
+ log("FINISHED: %d terrain tiles and %d POIs in %s"%(len(tile_paths),len(poi_paths),OUT))
+if __name__=="__main__":
+ try:main()
+ except Exception as e:log("FATAL: "+repr(e));raise
