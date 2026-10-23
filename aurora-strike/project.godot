@@ -19,9 +19,9 @@ textures/default_filters/use_nearest_mipmap_filter=false
 environment/defaults/default_clear_color=Color(0.48, 0.68, 0.82, 1)
 
 [input]
-move_forward={"deadzone":0.2,"events":[{"physical_keycode":87,"unicode":119,"echo":false,"script":null}]}
-move_back={"deadzone":0.2,"events":[{"physical_keycode":83,"unicode":115,"echo":false,"script":null}]}
-move_left={"deadzone":0.2,"events":[{"physical_keycode":65,"unicode":97,"echo":false,"script":null}]}
-move_right={"deadzone":0.2,"events":[{"physical_keycode":68,"unicode":100,"echo":false,"script":null}]}
-jump={"deadzone":0.2,"events":[{"physical_keycode":32,"unicode":32,"echo":false,"script":null}]}
-slide={"deadzone":0.2,"events":[{"physical_keycode":4194325,"unicode":0,"echo":false,"script":null}]}
+move_forward={"deadzone":0.2,"events":[{"physical_keycode":87,"unicode":119}]}
+move_back={"deadzone":0.2,"events":[{"physical_keycode":83,"unicode":115}]}
+move_left={"deadzone":0.2,"events":[{"physical_keycode":65,"unicode":97}]}
+move_right={"deadzone":0.2,"events":[{"physical_keycode":68,"unicode":100}]}
+jump={"deadzone":0.2,"events":[{"physical_keycode":32,"unicode":32}]}
+sprint={"deadzone":0.2,"events":[{"physical_keycode":4194325,"unicode":0}]}
