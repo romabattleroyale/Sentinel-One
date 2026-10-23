@@ -182,8 +182,8 @@ func _patch(node_name: String, size: Vector2, center: Vector2, material: Materia
 		uv.append(Vector2(local_x/42.0,local_z/42.0))
 	for i in range(SEGMENTS):
 		indices.append(0)
-		indices.append(i+1)
 		indices.append(((i+1)%SEGMENTS)+1)
+		indices.append(i+1)
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
