@@ -766,7 +766,8 @@ func _build_city_blocks() -> void:
 						var scale_factor := rng.randf_range(2.6,3.35)
 						detailed.position = Vector3(bx,0.09,bz)
 						detailed.scale = Vector3(scale_factor,scale_factor,scale_factor)
-						detailed.rotation.y = rng.randf_range(0.0,TAU)
+						var quarter_turns: int = rng.randi_range(0,3)
+						detailed.rotation.y = float(quarter_turns)*PI*0.5
 						block.add_child(detailed)
 						continue
 				var w := rng.randf_range(22,43)
