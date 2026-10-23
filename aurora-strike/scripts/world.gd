@@ -550,7 +550,8 @@ func _build_city_blocks() -> void:
 	]
 	var glass := _mat(Color(0.12,0.25,0.32),0.28,0.22)
 	var roof := _mat(Color(0.19,0.20,0.20))
-	for gx in range(-3,4):
+	var building_slots: Array[Vector2] = [Vector2(-32,-32),Vector2(32,-32),Vector2(-32,32),Vector2(32,32)]
+	for gx in range(-4,5):
 		for gz in range(-3,4):
 			var cx := float(gx) * BLOCK_SPACING
 			var cz := float(gz) * BLOCK_SPACING
@@ -560,9 +561,10 @@ func _build_city_blocks() -> void:
 			block.name = "Block_%d_%d" % [gx,gz]
 			block.position = Vector3(cx,0,cz)
 			add_child(block)
-			for i in range(rng.randi_range(2,4)):
-				var bx := rng.randf_range(-48,48)
-				var bz := rng.randf_range(-48,48)
+			for i in range(rng.randi_range(3,4)):
+				var slot_pos: Vector2 = building_slots[i]
+				var bx: float = slot_pos.x + rng.randf_range(-4.0,4.0)
+				var bz: float = slot_pos.y + rng.randf_range(-4.0,4.0)
 				# Prefer detailed baked Roman architecture from the existing project library.
 				# These scenes carry facade meshes, roof details, UVs, texture and collision resources.
 				var archetype_id: int = absi(gx*17 + gz*11 + i*7) % 27
