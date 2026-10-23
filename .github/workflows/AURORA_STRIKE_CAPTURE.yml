@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install display capture tools
-        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool
       - name: Install Godot 4.5.1
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -25,40 +25,53 @@ jobs:
       - name: Import project
         working-directory: aurora-strike
         run: godot --headless --editor --path . --quit
-      - name: Capture multiple actual runtime viewpoints
+      - name: Capture five viewpoints from the same running game
         working-directory: aurora-strike
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p ../artifacts/aurora-runtime
           Xvfb :99 -screen 0 1280x1280x24 -ac +extension GLX > ../artifacts/aurora-runtime/xvfb.log 2>&1 &
           echo $! > ../artifacts/aurora-runtime/xvfb.pid
           export DISPLAY=:99
-          for VIEW in player top station industrial coast; do
-            echo "Capturing runtime view: $VIEW"
-            godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy -- --view=$VIEW > ../artifacts/aurora-runtime/godot-$VIEW.log 2>&1 &
-            GAME_PID=$!
-            READY=0
-            for ATTEMPT in $(seq 1 30); do
-              if grep -q 'AURORA_RUNTIME_READY' ../artifacts/aurora-runtime/godot-$VIEW.log; then READY=1; break; fi
-              if ! kill -0 $GAME_PID 2>/dev/null; then break; fi
-              sleep 1
-            done
-            if [ "$READY" -ne 1 ]; then cat ../artifacts/aurora-runtime/godot-$VIEW.log; kill $GAME_PID || true; exit 1; fi
-            # Godot logs _ready before the first rendered frame; let the window finish presenting.
-            sleep 8
-            ffmpeg -y -f x11grab -video_size 1280x1280 -i :99.0 -frames:v 1 ../artifacts/aurora-runtime/aurora-$VIEW.png
-            if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' ../artifacts/aurora-runtime/godot-$VIEW.log; then
-              cat ../artifacts/aurora-runtime/godot-$VIEW.log
-              kill $GAME_PID || true
-              exit 1
-            fi
-            test -s ../artifacts/aurora-runtime/aurora-$VIEW.png
-            test "$(stat -c%s ../artifacts/aurora-runtime/aurora-$VIEW.png)" -gt 25000
-            kill $GAME_PID || true
-            wait $GAME_PID || true
+          godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy -- --view=top > ../artifacts/aurora-runtime/godot-runtime.log 2>&1 &
+          GAME_PID=$!
+          cleanup() {
+            kill "$GAME_PID" 2>/dev/null || true
+            wait "$GAME_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          READY=0
+          for ATTEMPT in $(seq 1 60); do
+            if grep -q 'AURORA_RUNTIME_READY' ../artifacts/aurora-runtime/godot-runtime.log; then READY=1; break; fi
+            if ! kill -0 "$GAME_PID" 2>/dev/null; then break; fi
             sleep 1
           done
+          if [ "$READY" -ne 1 ]; then cat ../artifacts/aurora-runtime/godot-runtime.log; exit 1; fi
+          WINDOW_ID=$(xdotool search --onlyvisible --name 'AURORA STRIKE' 2>/dev/null | head -n 1 || true)
+          if [ -n "$WINDOW_ID" ]; then xdotool windowfocus "$WINDOW_ID" 2>/dev/null || true; fi
+          # _ready logs before the first complete rendered frame on software GL.
+          sleep 8
+          capture_view() {
+            local view="$1"
+            ffmpeg -y -loglevel error -f x11grab -video_size 1280x1280 -i :99.0 -frames:v 1 -update 1 "../artifacts/aurora-runtime/aurora-$view.png"
+            test -s "../artifacts/aurora-runtime/aurora-$view.png"
+            test "$(stat -c%s "../artifacts/aurora-runtime/aurora-$view.png")" -gt 25000
+            echo "Captured $view: $(stat -c%s "../artifacts/aurora-runtime/aurora-$view.png") bytes"
+          }
+          capture_view top
+          for spec in "2 player" "3 station" "4 industrial" "5 coast"; do
+            read -r key view <<< "$spec"
+            xdotool key --clearmodifiers "$key"
+            sleep 3
+            capture_view "$view"
+          done
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' ../artifacts/aurora-runtime/godot-runtime.log; then
+            cat ../artifacts/aurora-runtime/godot-runtime.log
+            exit 1
+          fi
       - name: Upload actual runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
