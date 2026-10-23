@@ -11,6 +11,7 @@ func _ready() -> void:
 	_build_biomes()
 	_build_nature()
 	_build_roads()
+	_build_country_roads()
 	_build_city_blocks()
 	_build_landmarks()
 	_build_district_details()
@@ -264,6 +265,83 @@ func _build_roads() -> void:
 		for x in range(-680,681,48):
 			_box(self,"LaneDash",Vector3(18,0.22,0.35),Vector3(x,0.98,z),line)
 
+
+func _road_segment(a: Vector2, b: Vector2, width: float, material: Material, node_name: String) -> void:
+	var delta := b-a
+	var length := delta.length()
+	var mid := (a+b)*0.5
+	var road_mesh := BoxMesh.new()
+	road_mesh.size = Vector3(width,0.16,length)
+	var road_node := MeshInstance3D.new()
+	road_node.name = node_name
+	road_node.mesh = road_mesh
+	road_node.position = Vector3(mid.x,0.90,mid.y)
+	road_node.rotation.y = atan2(delta.x,delta.y)
+	road_node.material_override = material
+	add_child(road_node)
+
+func _build_country_roads() -> void:
+	var asphalt := _mat(Color(0.12,0.14,0.15),0.94)
+	var shoulder := _mat(Color(0.48,0.46,0.38))
+	# Roads leave the city grid and lead to the major locations visible in the reference map.
+	var routes := [
+		[Vector2(-510,-510),Vector2(-640,-610)],
+		[Vector2(-640,-610),Vector2(-720,-760)],
+		[Vector2(-170,-510),Vector2(-225,-455)],
+		[Vector2(-225,-455),Vector2(-440,-540)],
+		[Vector2(170,-510),Vector2(330,-575)],
+		[Vector2(330,-575),Vector2(700,-650)],
+		[Vector2(-510,170),Vector2(-665,190)],
+		[Vector2(-665,190),Vector2(-865,120)],
+		[Vector2(-510,510),Vector2(-630,600)],
+		[Vector2(-630,600),Vector2(-700,735)],
+		[Vector2(170,510),Vector2(260,625)],
+		[Vector2(260,625),Vector2(530,700)],
+		[Vector2(510,510),Vector2(610,330)],
+		[Vector2(610,330),Vector2(800,250)],
+		[Vector2(170,170),Vector2(360,240)],
+		[Vector2(360,240),Vector2(570,200)]
+	]
+	for route in routes:
+		_road_segment(route[0],route[1],19.0,shoulder,"Route_Shoulder")
+		_road_segment(route[0],route[1],13.0,asphalt,"Route_Connector")
+
+func _build_map_overlay_labels() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "Top_Down_Map_Labels"
+	canvas.layer = 4
+	add_child(canvas)
+	var labels := [
+		["MONTE NEVOSO",-645,-710],
+		["LAGO AZZURRO",-250,-455],
+		["BOSCO OMBRA",315,-430],
+		["ISOLE DEL RELITTO",820,-660],
+		["PORTO",-865,60],
+		["CITTÀ CENTRALE",-320,15],
+		["STAZIONE TERMINI",20,62],
+		["QUARTIERE RESIDENZIALE",570,-120],
+		["COLLINE VERDI",-545,325],
+		["RIVIERA",-795,520],
+		["BASE MILITARE",-650,655],
+		["ZONA INDUSTRIALE",-130,400],
+		["CENTRO COMMERCIALE",270,410],
+		["ZONA AGRICOLA",650,220],
+		["CAVA DESOLATA",35,690],
+		["DESERTO ROSSO",580,640]
+	]
+	for item in labels:
+		var label := Label.new()
+		label.text = item[0]
+		label.position = Vector2(640.0+float(item[1])*0.55,640.0+float(item[2])*0.55)
+		label.size = Vector2(245,34)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size",15)
+		label.add_theme_color_override("font_color",Color(1.0,0.98,0.87))
+		label.add_theme_color_override("font_outline_color",Color(0.025,0.045,0.055,1.0))
+		label.add_theme_constant_override("outline_size",5)
+		canvas.add_child(label)
+
 func _build_city_blocks() -> void:
 	var palettes: Array[Material] = [
 		_mat(Color(0.62,0.56,0.46)), _mat(Color(0.48,0.51,0.52)),
@@ -377,9 +455,11 @@ func _apply_capture_view() -> void:
 	camera.set_as_top_level(true)
 	match view:
 		"top":
-			camera.global_position = Vector3(0, 1650, 0)
+			camera.global_position = Vector3(0, 1550, 0)
 			camera.look_at(Vector3(0, 0, 0), Vector3(0, 0, -1))
 			camera.fov = 70
+			get_window().size = Vector2i(1280, 1280)
+			_build_map_overlay_labels()
 		"station":
 			camera.global_position = Vector3(220, 190, 300)
 			camera.look_at(Vector3(0, 8, 0))
