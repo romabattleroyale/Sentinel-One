@@ -7,6 +7,7 @@ var capture_camera: Camera3D
 var map_overlay: CanvasLayer
 var current_capture_view := "player"
 var hud_layer: CanvasLayer
+var using_blender_map := false
 
 func _ready() -> void:
 	rng.seed = 271023
@@ -44,6 +45,7 @@ func _try_load_blender_map() -> bool:
 	var map_instance := packed.instantiate()
 	map_instance.name = "BlenderGeneratedIsland"
 	add_child(map_instance)
+	using_blender_map = true
 	_add_master_terrain_collision(map_instance)
 	print("AURORA_MAP_SOURCE | ", asset_path)
 	return true
@@ -934,7 +936,7 @@ func _build_landmarks() -> void:
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "Player"
-	player.position = Vector3(0,2.5,90)
+	player.position = Vector3(300,35,-242) if using_blender_map else Vector3(0,2.5,90)
 	add_child(player)
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
