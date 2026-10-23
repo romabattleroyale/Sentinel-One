@@ -420,11 +420,26 @@ func _build_city_blocks() -> void:
 			block.position = Vector3(cx,0,cz)
 			add_child(block)
 			for i in range(rng.randi_range(2,4)):
+				var bx := rng.randf_range(-48,48)
+				var bz := rng.randf_range(-48,48)
+				# Prefer detailed baked Roman architecture from the existing project library.
+				# These scenes carry facade meshes, roof details, UVs, texture and collision resources.
+				var archetype_id := abs(gx*17 + gz*11 + i*7) % 27
+				var archetype_path := "res://baked_city/archetypes_587/archetype_%02d.tscn" % archetype_id
+				var archetype := load(archetype_path) as PackedScene
+				if archetype != null and rng.randf() < 0.82:
+					var detailed := archetype.instantiate() as Node3D
+					if detailed != null:
+						detailed.name = "Detailed_Roman_Building_%02d" % archetype_id
+						var scale_factor := rng.randf_range(2.6,3.35)
+						detailed.position = Vector3(bx,0.09,bz)
+						detailed.scale = Vector3(scale_factor,scale_factor,scale_factor)
+						detailed.rotation.y = rng.randf_range(0.0,TAU)
+						block.add_child(detailed)
+						continue
 				var w := rng.randf_range(22,43)
 				var d := rng.randf_range(24,42)
 				var h := rng.randf_range(12,52)
-				var bx := rng.randf_range(-48,48)
-				var bz := rng.randf_range(-48,48)
 				var body_mat: Material = palettes[rng.randi_range(0,palettes.size()-1)]
 				_box(block,"Building_%d" % i,Vector3(w,h,d),Vector3(bx,h/2+0.1,bz),body_mat,true)
 				_box(block,"Roof_%d" % i,Vector3(w+1,1,d+1),Vector3(bx,h+0.65,bz),roof)
