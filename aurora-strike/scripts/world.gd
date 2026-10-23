@@ -312,13 +312,13 @@ func _build_roads() -> void:
 	var road := _mat(Color(0.075,0.085,0.095))
 	var line := _mat(Color(0.96,0.77,0.32),0.6)
 	var sidewalk := _mat(Color(0.52,0.52,0.49))
-	for x in [-510.0,-170.0,170.0,510.0]:
+	for x in [-595.0,-425.0,-255.0,-85.0,85.0,255.0,425.0,595.0]:
 		_box(self,"Road_NS",Vector3(24,0.18,1420),Vector3(x,0.16,0),road)
 		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x-15,0.21,0),sidewalk)
 		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x+15,0.21,0),sidewalk)
 		for z in range(-680,681,48):
 			_box(self,"LaneDash",Vector3(0.35,0.22,18),Vector3(x,0.27,z),line)
-	for z in [-510.0,-170.0,170.0,510.0]:
+	for z in [-595.0,-425.0,-255.0,-85.0,85.0,255.0,425.0,595.0]:
 		_box(self,"Road_EW",Vector3(1420,0.18,24),Vector3(0,0.16,z),road)
 		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.21,z-15),sidewalk)
 		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.21,z+15),sidewalk)
@@ -345,21 +345,21 @@ func _build_country_roads() -> void:
 	var shoulder := _mat(Color(0.48,0.46,0.38))
 	# Roads leave the city grid and lead to the major locations visible in the reference map.
 	var routes := [
-		[Vector2(-510,-510),Vector2(-640,-610)],
+		[Vector2(-595,-425),Vector2(-640,-610)],
 		[Vector2(-640,-610),Vector2(-720,-760)],
-		[Vector2(-170,-510),Vector2(-225,-455)],
+		[Vector2(-255,-425),Vector2(-225,-455)],
 		[Vector2(-225,-455),Vector2(-440,-540)],
-		[Vector2(170,-510),Vector2(330,-575)],
+		[Vector2(255,-425),Vector2(330,-575)],
 		[Vector2(330,-575),Vector2(700,-650)],
-		[Vector2(-510,170),Vector2(-665,190)],
+		[Vector2(-595,255),Vector2(-665,190)],
 		[Vector2(-665,190),Vector2(-865,120)],
-		[Vector2(-510,510),Vector2(-630,600)],
+		[Vector2(-595,425),Vector2(-630,600)],
 		[Vector2(-630,600),Vector2(-700,735)],
-		[Vector2(170,510),Vector2(260,625)],
+		[Vector2(255,425),Vector2(260,625)],
 		[Vector2(260,625),Vector2(530,700)],
-		[Vector2(510,510),Vector2(610,330)],
+		[Vector2(595,425),Vector2(610,330)],
 		[Vector2(610,330),Vector2(800,250)],
-		[Vector2(170,170),Vector2(360,240)],
+		[Vector2(255,255),Vector2(360,240)],
 		[Vector2(360,240),Vector2(570,200)]
 	]
 	for route in routes:
