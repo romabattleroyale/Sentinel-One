@@ -631,6 +631,8 @@ func _build_player() -> void:
 	pivot.position.y = 1.5
 	player.add_child(pivot)
 	var camera := Camera3D.new()
+	camera.name = "CaptureCamera"
+	capture_camera = camera
 	camera.position = Vector3(0,2.4,7.5)
 	camera.rotation_degrees.x = -12
 	camera.current = true
@@ -662,7 +664,8 @@ func _apply_capture_view() -> void:
 	for arg in args:
 		if arg.begins_with("--view="):
 			view = arg.trim_prefix("--view=")
-	capture_camera = get_node_or_null("Player/CameraPivot/Camera3D") as Camera3D
+	if capture_camera == null:
+		capture_camera = get_node_or_null("Player/CameraPivot/CaptureCamera") as Camera3D
 	if capture_camera == null:
 		push_error("Capture camera was not created.")
 		return
