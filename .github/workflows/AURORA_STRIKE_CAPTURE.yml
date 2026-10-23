@@ -73,7 +73,7 @@ jobs:
             echo "Captured $view: $(stat -c%s "../artifacts/aurora-runtime/aurora-$view.png") bytes"
           }
           capture_view top
-          for spec in "2 player" "3 station" "4 industrial" "5 coast"; do
+          for spec in "2 player" "3 station" "4 industrial" "5 coast" "6 downtown" "7 snow"; do
             read -r key view <<< "$spec"
             xdotool key --clearmodifiers "$key"
             sleep 1
@@ -97,6 +97,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aurora-strike-runtime-multi-view
+          name: aurora-strike-runtime-seven-views
           path: artifacts/aurora-runtime/
           retention-days: 14
