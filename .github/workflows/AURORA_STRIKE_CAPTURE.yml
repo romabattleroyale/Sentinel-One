@@ -1,0 +1,50 @@
+name: AURORA STRIKE graphical runtime capture
+
+on:
+  push:
+    branches: [aurora-strike-current]
+    paths:
+      - 'aurora-strike/**'
+      - '.github/workflows/AURORA_STRIKE_CAPTURE.yml'
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install display capture tools
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg
+      - name: Install Godot 4.5.1
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.5.1
+          use-dotnet: false
+      - name: Import project
+        working-directory: aurora-strike
+        run: godot --headless --editor --path . --quit
+      - name: Launch graphical game and capture screenshot
+        working-directory: aurora-strike
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          mkdir -p ../artifacts/aurora-runtime
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX > ../artifacts/aurora-runtime/xvfb.log 2>&1 &
+          echo $! > ../artifacts/aurora-runtime/xvfb.pid
+          export DISPLAY=:99
+          godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > ../artifacts/aurora-runtime/godot.log 2>&1 &
+          GAME_PID=$!
+          sleep 12
+          ffmpeg -y -f x11grab -video_size 1280x720 -frames:v 1 -i :99.0 ../artifacts/aurora-runtime/aurora-strike-runtime.png
+          kill $GAME_PID || true
+          wait $GAME_PID || true
+          test -s ../artifacts/aurora-runtime/aurora-strike-runtime.png
+      - name: Upload actual runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-strike-runtime-evidence
+          path: artifacts/aurora-runtime/
+          retention-days: 14
