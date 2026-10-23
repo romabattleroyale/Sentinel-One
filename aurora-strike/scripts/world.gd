@@ -44,8 +44,17 @@ func _try_load_blender_map() -> bool:
 	var map_instance := packed.instantiate()
 	map_instance.name = "BlenderGeneratedIsland"
 	add_child(map_instance)
+	_add_master_terrain_collision(map_instance)
 	print("AURORA_MAP_SOURCE | ", asset_path)
 	return true
+
+func _add_master_terrain_collision(node: Node) -> void:
+	if node is MeshInstance3D and node.name == "Island_Terrain_2000m":
+		(node as MeshInstance3D).create_trimesh_collision()
+		print("AURORA_COLLISION | master terrain collision generated")
+		return
+	for child in node.get_children():
+		_add_master_terrain_collision(child)
 
 func _mat(color: Color, roughness: float = 0.85, metallic: float = 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
