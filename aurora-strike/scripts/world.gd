@@ -18,6 +18,7 @@ func _ready() -> void:
 	_build_player()
 	_build_hud()
 	_apply_capture_view()
+	print("AURORA_RUNTIME_READY | procedural island, biomes, POIs and detailed city generated")
 
 func _mat(color: Color, roughness: float = 0.85, metallic: float = 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -518,6 +519,8 @@ func _build_hud() -> void:
 func _apply_capture_view() -> void:
 	var args := OS.get_cmdline_user_args()
 	var view := "player"
+	if args.size() > 0:
+		get_window().size = Vector2i(1280,1280)
 	for arg in args:
 		if arg.begins_with("--view="):
 			view = arg.trim_prefix("--view=")
@@ -532,7 +535,6 @@ func _apply_capture_view() -> void:
 			camera.global_position = Vector3(0, 1550, 0)
 			camera.look_at(Vector3(0, 0, 0), Vector3(0, 0, -1))
 			camera.fov = 70
-			get_window().size = Vector2i(1280, 1280)
 			_build_map_overlay_labels()
 		"station":
 			camera.global_position = Vector3(220, 190, 300)
