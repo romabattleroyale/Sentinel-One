@@ -436,18 +436,33 @@ func _build_nature() -> void:
 		var x := rng.randf_range(115,520)
 		var z := rng.randf_range(-625,-205)
 		if Vector2(x,z).distance_to(Vector2(310,-410)) < 260:
+			if not _is_urban_block(x,z):
 			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.65,1.25))
 	# Mixed green hills and autumn groves along the west side.
 	for i in range(95):
 		var x := rng.randf_range(-790,-330)
 		var z := rng.randf_range(100,550)
-		_tree(self,Vector3(x,0.82,z),rng.randf_range(0.55,1.05),z>430)
+		if not _is_urban_block(x,z):
+			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.55,1.05),z>430)
 	# Smaller trees frame roads without filling the built-up centre.
 	for i in range(70):
 		var x := rng.randf_range(-650,650)
 		var z := rng.randf_range(-640,620)
-		if abs(x)>565 or abs(z)>560:
-			_tree(self,Vector3(x,0.82,z),rng.randf_range(0.45,0.8))
+		if (abs(x)>565 or abs(z)>560) and not _is_urban_block(x,z):
+			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.45,0.8))
+
+func _is_urban_block(x: float, z: float) -> bool:
+	var nearest_gx := roundi(x/BLOCK_SPACING)
+	var nearest_gz := roundi(z/BLOCK_SPACING)
+	for gx in range(nearest_gx-1,nearest_gx+2):
+		for gz in range(nearest_gz-1,nearest_gz+2):
+			var cx := float(gx)*BLOCK_SPACING
+			var cz := float(gz)*BLOCK_SPACING
+			if abs(cx)<70.0 or abs(cz)<70.0:
+				continue
+			if abs(x-cx)<62.0 and abs(z-cz)<62.0:
+				return true
+	return false
 
 func _build_terrain_relief() -> void:
 	# Soft overlapping mounds provide readable contour changes between the flat road corridors.
@@ -472,19 +487,23 @@ func _build_terrain_relief() -> void:
 	for i in range(34):
 		var x := rng.randf_range(-820.0,-340.0)
 		var z := rng.randf_range(130.0,570.0)
-		_make_terrain_mound(Vector3(x,0,z),rng.randf_range(20.0,48.0),rng.randf_range(4.0,13.0),rng.randf_range(26.0,52.0),hill_mats[rng.randi_range(0,hill_mats.size()-1)],"Green_Rolling_Hill")
+		if not _is_urban_block(x,z):
+			_make_terrain_mound(Vector3(x,0,z),rng.randf_range(20.0,48.0),rng.randf_range(4.0,13.0),rng.randf_range(26.0,52.0),hill_mats[rng.randi_range(0,hill_mats.size()-1)],"Green_Rolling_Hill")
 	for i in range(24):
 		var x := rng.randf_range(120.0,540.0)
 		var z := rng.randf_range(-650.0,-200.0)
-		_make_terrain_mound(Vector3(x,0,z),rng.randf_range(24.0,55.0),rng.randf_range(4.0,10.0),rng.randf_range(22.0,48.0),forest_mats[rng.randi_range(0,forest_mats.size()-1)],"Forest_Undulation")
+		if not _is_urban_block(x,z):
+			_make_terrain_mound(Vector3(x,0,z),rng.randf_range(24.0,55.0),rng.randf_range(4.0,10.0),rng.randf_range(22.0,48.0),forest_mats[rng.randi_range(0,forest_mats.size()-1)],"Forest_Undulation")
 	for i in range(28):
 		var x := rng.randf_range(-190.0,330.0)
 		var z := rng.randf_range(565.0,855.0)
-		_make_terrain_mound(Vector3(x,0,z),rng.randf_range(24.0,60.0),rng.randf_range(3.0,10.0),rng.randf_range(24.0,60.0),dune_mats[rng.randi_range(0,dune_mats.size()-1)],"Quarry_Dune")
+		if not _is_urban_block(x,z):
+			_make_terrain_mound(Vector3(x,0,z),rng.randf_range(24.0,60.0),rng.randf_range(3.0,10.0),rng.randf_range(24.0,60.0),dune_mats[rng.randi_range(0,dune_mats.size()-1)],"Quarry_Dune")
 	for i in range(24):
 		var x := rng.randf_range(395.0,785.0)
 		var z := rng.randf_range(560.0,815.0)
-		_make_terrain_mound(Vector3(x,0,z),rng.randf_range(26.0,58.0),rng.randf_range(5.0,15.0),rng.randf_range(28.0,64.0),red_mats[rng.randi_range(0,red_mats.size()-1)],"Red_Desert_Mesa_Slope")
+		if not _is_urban_block(x,z):
+			_make_terrain_mound(Vector3(x,0,z),rng.randf_range(26.0,58.0),rng.randf_range(5.0,15.0),rng.randf_range(28.0,64.0),red_mats[rng.randi_range(0,red_mats.size()-1)],"Red_Desert_Mesa_Slope")
 
 func _make_terrain_mound(origin: Vector3, width: float, height: float, depth: float, material: Material, node_name: String) -> void:
 	var mesh := SphereMesh.new()
