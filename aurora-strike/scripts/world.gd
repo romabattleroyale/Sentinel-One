@@ -687,6 +687,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_3: _set_capture_view("station")
 			KEY_4: _set_capture_view("industrial")
 			KEY_5: _set_capture_view("coast")
+			KEY_6: _set_capture_view("downtown")
+			KEY_7: _set_capture_view("snow")
 
 func _set_capture_view(view: String) -> void:
 	print("AURORA_VIEW | ", view, " | ", get_window().size, " | ", get_window().position)
@@ -710,14 +712,22 @@ func _set_capture_view(view: String) -> void:
 			capture_camera.look_at(Vector3(0,0,0),Vector3(0,0,-1))
 			capture_camera.fov = 70
 		"station":
-			capture_camera.global_position = Vector3(220,190,300)
-			capture_camera.look_at(Vector3(0,8,0))
+			capture_camera.global_position = Vector3(150,62,110)
+			capture_camera.look_at(Vector3(0,10,0))
 			capture_camera.fov = 65
 		"industrial":
-			capture_camera.global_position = Vector3(-470,180,420)
-			capture_camera.look_at(Vector3(0,15,170))
-			capture_camera.fov = 68
+			capture_camera.global_position = Vector3(-245,92,600)
+			capture_camera.look_at(Vector3(-130,12,430))
+			capture_camera.fov = 66
 		"coast":
-			capture_camera.global_position = Vector3(-650,260,450)
-			capture_camera.look_at(Vector3(-800,0,0))
-			capture_camera.fov = 68
+			capture_camera.global_position = Vector3(-720,105,215)
+			capture_camera.look_at(Vector3(-845,5,60))
+			capture_camera.fov = 66
+		"downtown":
+			capture_camera.global_position = Vector3(150,105,180)
+			capture_camera.look_at(Vector3(-75,12,-35))
+			capture_camera.fov = 66
+		"snow":
+			capture_camera.global_position = Vector3(-720,300,-570)
+			capture_camera.look_at(Vector3(-650,28,-735))
+			capture_camera.fov = 65
