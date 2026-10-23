@@ -1,9 +1,17 @@
-# AURORA STRIKE — Blender map generation tools
+# AURORA STRIKE — Blender/Python map pipeline
 
-This folder contains the offline Blender authoring pipeline for the island map specified in the supplied production manual.
+## Files
+- `aurora_map_gen.py`: procedural Blender scene generator and export pipeline.
+- `poi_coordinates.csv`: sixteen estimated POI anchors from page 5 of the production manual.
 
-- `aurora_map_gen.py`: complete source generator.
-- `poi_coordinates.csv`: the 16 estimated POI anchor coordinates from manual page 5.
-- `README.md`: usage, export conventions, coordinate system, and cautions.
+## Run
+Use Blender 3.6+ / 4.x. Open the Python file in the Scripting workspace and run it, or from a shell run `blender --background --python aurora_map_gen.py`. Output defaults to a `generated` directory beside the script; set `AURORA_OUTPUT_DIR` to override.
 
-Target: Blender 3.6+ / 4.x. 1 unit = 1 metre. X-/X+ west/east; Z-/Z+ north/south. The generator creates real geometry, a 2000×2000 m island, water/coast, biomes, district blockouts, 64 terrain tiles of 250 m, modular POI exports, an overview PNG, and a manifest. All altitudes and landform edges are concept-derived estimates, not measured survey data. Import and seam-check each tile in Godot before gameplay use.
+## Coordinate convention
+1 Blender unit = 1 m. Horizontal axes are X/Z: negative X west, positive X east, negative Z north, positive Z south. Island target is 2000 × 2000 m. The world is split into 8 × 8 tiles of 250 m; tile (i,j) origin is X=-1000+250×i, Z=-1000+250×j.
+
+## Generated assets
+The pipeline creates editable Blender source, a top-down overview PNG, terrain tile GLBs, separate POI module GLBs, an assembled preview GLB and a CSV manifest with bounds/origins/provenance.
+
+## Important
+The manual's page 5 POI coordinates and page 8 altitudes are estimates inferred from an illustration, not a measured 3D world. The generated terrain and district shapes remain an art-directed blockout. Validate seams, GLB transforms, slopes, collisions and mobile performance in Godot before using all tiles in the game. Blender owns static geometry; existing Godot scripts remain responsible for runtime gameplay and controls. No third-party assets are bundled.
