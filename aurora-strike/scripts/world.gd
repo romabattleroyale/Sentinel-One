@@ -11,6 +11,12 @@ var hud_layer: CanvasLayer
 func _ready() -> void:
 	rng.seed = 271023
 	_build_environment()
+	if _try_load_blender_map():
+		_build_player()
+		_build_hud()
+		_apply_capture_view()
+		print("AURORA_RUNTIME_READY | Blender-generated master island loaded into Godot")
+		return
 	_build_terrain()
 	_build_biomes()
 	_build_nature()
@@ -24,7 +30,22 @@ func _ready() -> void:
 	_build_player()
 	_build_hud()
 	_apply_capture_view()
-	print("AURORA_RUNTIME_READY | procedural island, biomes, POIs and detailed city generated")
+	print("AURORA_RUNTIME_READY | procedural fallback island, biomes, POIs and city generated")
+
+func _try_load_blender_map() -> bool:
+	var asset_path := "res://world/generated_blender/AURORA_STRIKE_Master_Preview.glb"
+	if not ResourceLoader.exists(asset_path):
+		print("AURORA_MAP_SOURCE | procedural fallback")
+		return false
+	var packed := load(asset_path) as PackedScene
+	if packed == null:
+		push_warning("AURORA_MAP_SOURCE | GLB exists but did not import as a PackedScene; using procedural fallback")
+		return false
+	var map_instance := packed.instantiate()
+	map_instance.name = "BlenderGeneratedIsland"
+	add_child(map_instance)
+	print("AURORA_MAP_SOURCE | ", asset_path)
+	return true
 
 func _mat(color: Color, roughness: float = 0.85, metallic: float = 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
