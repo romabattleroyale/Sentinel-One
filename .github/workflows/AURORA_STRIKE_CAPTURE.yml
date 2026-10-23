@@ -34,8 +34,16 @@ jobs:
           set -euo pipefail
           mkdir -p ../artifacts/aurora-runtime
           Xvfb :99 -screen 0 1280x1280x24 -ac +extension GLX > ../artifacts/aurora-runtime/xvfb.log 2>&1 &
-          echo $! > ../artifacts/aurora-runtime/xvfb.pid
+          XVFB_PID=$!
+          echo $XVFB_PID > ../artifacts/aurora-runtime/xvfb.pid
           export DISPLAY=:99
+          # Wait for X11 to accept clients before launching Godot (avoids a transient startup race).
+          DISPLAY=:99 xdotool getdisplaygeometry >/dev/null 2>&1 || true
+          for ATTEMPT in $(seq 1 20); do
+            if DISPLAY=:99 xdotool getdisplaygeometry >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          DISPLAY=:99 xdotool getdisplaygeometry
           AURORA_CAPTURE=1 godot --path . --windowed --resolution 1280x1280 --position 0,0 --single-window --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy -- --view=top > ../artifacts/aurora-runtime/godot-runtime.log 2>&1 &
           GAME_PID=$!
           cleanup() {
