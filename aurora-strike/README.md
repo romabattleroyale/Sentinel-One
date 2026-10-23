@@ -1,21 +1,22 @@
 # AURORA STRIKE — Nuova Aurora
 
-Progetto Godot 4.5.1+, GDScript, renderer Mobile, pensato per Android e iOS. La mappa di riferimento è un'isola di 2000 × 2000 metri.
+Progetto Godot 4.5.1+, GDScript, renderer Mobile, pensato per Android e iOS. La mappa-obiettivo è un'isola di 2000 × 2000 metri.
 
-## Cosa c'è nella build
-- Landmass irregolare con mare e fascia d'acqua bassa turchese, spiagge differenziate per bioma.
-- Biomi principali: Monte Nevoso, Lago Azzurro, Bosco Ombra, Isole del Relitto, Porto, Città Centrale, Stazione Termini, Quartiere Residenziale, Colline Verdi, Riviera, Base Militare, Zona Industriale, Centro Commerciale, Zona Agricola, Cava Desolata e Deserto Rosso.
-- Strade urbane e connessioni stradali verso le aree periferiche.
-- Edifici romani dettagliati importati dalla libreria del repository: 27 scene archetipiche con materiali e texture, usate al posto di gran parte dei blocchi procedurali.
-- Stazione centrale, porto con moli e container, campi e silos, impianto industriale, hangar e pista militare.
-- Controller di movimento, salto, corsa e controlli touch; telecamera modificabile durante il runtime.
-- Vista atlante dall'alto con griglia A–J / 1–10, nomi dei POI, titolo, bussola e scala.
+## Build attuale
+- Costa irregolare con oceano profondo, fascia di bassi fondali turchesi e spiagge con colori legati ai biomi.
+- Terreno generato con griglia densa e colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso.
+- Lago Azzurro e corso d'acqua turchese, alberature aggiuntive nel bosco settentrionale e rilievi secondari nelle zone verdi e desertiche.
+- Rete stradale, marciapiedi più sottili, collegamenti verso porto, montagna, riviera, base militare, cava e deserto.
+- Città più densa con lotti allineati alla viabilità e 27 scene archetipiche romane già presenti nel repository, con materiali e texture importati.
+- Stazione Termini con atrio, insegna 3D, pensiline dei binari, piattaforme, rotaie e traverse; porto con moli/container, fabbrica, serbatoi, pista e hangar militari, campi e silos.
+- Controller per movimento, salto e corsa; joystick touch, pulsanti per salto/corsa e controllo telecamera su smartphone.
+- Atlante dall'alto con griglia A–J / 1–10, nomi POI, titolo, bussola e scala.
 
-## Avvio e controlli
-Aprire questa cartella in Godot 4.5.1 o successivo e premere F5. Desktop: WASD, Space, Shift e mouse per guardare. I tasti 1–5 selezionano la panoramica dall'alto, personaggio, stazione, area industriale e costa.
+## Avvio e viste
+Aprire questa cartella in Godot 4.5.1 o successivo e premere F5. Desktop: WASD, Space, Shift e mouse per guardare. I tasti 1–7 selezionano: atlante, personaggio, stazione, area industriale, costa, centro città e montagne nevose.
 
 ## Verifica
-Le GitHub Actions AURORA STRIKE runtime check e AURORA STRIKE graphical runtime capture controllano l'importazione, il parsing degli script, l'avvio della scena e le catture grafiche. Il workflow multi-vista deve acquisire cinque screenshot distinti; i file sono accettati soltanto se esistono, superano una dimensione minima e i log non contengono errori.
+Le GitHub Actions `AURORA STRIKE runtime check` e `AURORA STRIKE graphical runtime capture` verificano importazione, parsing e avvio. La cattura multi-vista acquisisce immagini dal runtime reale e controlla i log e la dimensione dei PNG; uno screenshot non viene accettato se la scena non segnala `AURORA_RUNTIME_READY`.
 
-## Limiti attuali
-Questa è una build giocabile in evoluzione, non ancora una replica fotorealistica della reference. L'architettura è in parte procedurale, la morfologia del terreno e i dettagli naturali devono ancora essere portati a un livello artistico molto più ricco e vanno aggiunti POI esplorabili interni. Le immagini di runtime vanno valutate rispetto a questi limiti, senza confondere il test tecnico con la fedeltà visiva finale.
+## Limiti conosciuti
+Questa è una build giocabile in evoluzione, non ancora una replica fotorealistica della reference. Il terreno ha biomi procedurali e rilievi semplificati, e parte degli edifici è modulare/procedurale; le sagome naturali, i POI esplorabili interni, la varietà dei dettagli e il livello artistico richiedono ancora lavoro. I risultati runtime vanno valutati separando i test tecnici dalla fedeltà estetica finale.
