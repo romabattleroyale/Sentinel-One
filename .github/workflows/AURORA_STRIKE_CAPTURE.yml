@@ -25,6 +25,9 @@ jobs:
       - name: Import project
         working-directory: aurora-strike
         run: godot --headless --editor --path . --quit
+      - name: Configure square viewport for full-map screenshots
+        working-directory: aurora-strike
+        run: sed -i 's|window/size/viewport_height=720|window/size/viewport_height=1280|' project.godot
       - name: Capture five viewpoints from the same running game
         working-directory: aurora-strike
         env:
