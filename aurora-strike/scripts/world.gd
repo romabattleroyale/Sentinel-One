@@ -434,6 +434,77 @@ func _build_map_overlay_labels() -> void:
 	canvas.name = "Top_Down_Map_Labels"
 	canvas.layer = 4
 	add_child(canvas)
+	# Atlas-style coordinates inspired by the supplied map reference.
+	var grid_left := 50.0
+	var grid_top := 58.0
+	var grid_width := 1180.0
+	var grid_height := 1180.0
+	var grid_color := Color(0.16,0.55,0.70,0.48)
+	for n in range(11):
+		var vx := grid_left + grid_width*float(n)/10.0
+		var hz := grid_top + grid_height*float(n)/10.0
+		var vertical := ColorRect.new()
+		vertical.position = Vector2(vx,grid_top)
+		vertical.size = Vector2(1.4,grid_height)
+		vertical.color = grid_color
+		canvas.add_child(vertical)
+		var horizontal := ColorRect.new()
+		horizontal.position = Vector2(grid_left,hz)
+		horizontal.size = Vector2(grid_width,1.4)
+		horizontal.color = grid_color
+		canvas.add_child(horizontal)
+	var letters := ["A","B","C","D","E","F","G","H","I","J"]
+	for n in range(10):
+		var column := Label.new()
+		column.text = letters[n]
+		column.position = Vector2(grid_left+grid_width*(float(n)+0.5)/10.0-12.0,14)
+		column.size = Vector2(24,30)
+		column.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		column.add_theme_font_size_override("font_size",15)
+		column.add_theme_color_override("font_color",Color(0.92,0.96,1.0))
+		canvas.add_child(column)
+		var row_label := Label.new()
+		row_label.text = str(n+1)
+		row_label.position = Vector2(12,grid_top+grid_height*(float(n)+0.5)/10.0-12.0)
+		row_label.size = Vector2(24,26)
+		row_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row_label.add_theme_font_size_override("font_size",14)
+		row_label.add_theme_color_override("font_color",Color(0.92,0.96,1.0))
+		canvas.add_child(row_label)
+	var title := Label.new()
+	title.text = "MAPPA DI GIOCO"
+	title.position = Vector2(38,1138)
+	title.size = Vector2(360,58)
+	title.add_theme_font_size_override("font_size",38)
+	title.add_theme_color_override("font_color",Color(1.0,0.98,0.91))
+	title.add_theme_color_override("font_outline_color",Color(0.02,0.04,0.06))
+	title.add_theme_constant_override("outline_size",6)
+	canvas.add_child(title)
+	var subtitle := Label.new()
+	subtitle.text = "2000 × 2000 m"
+	subtitle.position = Vector2(44,1190)
+	subtitle.size = Vector2(200,26)
+	subtitle.add_theme_font_size_override("font_size",18)
+	subtitle.add_theme_color_override("font_color",Color(0.83,0.89,0.93))
+	canvas.add_child(subtitle)
+	var compass := Label.new()
+	compass.text = "N\n✦\nO  +  E\nS"
+	compass.position = Vector2(1110,1053)
+	compass.size = Vector2(90,120)
+	compass.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	compass.add_theme_font_size_override("font_size",22)
+	compass.add_theme_color_override("font_color",Color(0.96,0.98,1.0))
+	compass.add_theme_color_override("font_outline_color",Color(0.02,0.05,0.07))
+	compass.add_theme_constant_override("outline_size",4)
+	canvas.add_child(compass)
+	var scale_label := Label.new()
+	scale_label.text = "0      250     500             1.000                    2.000 m\n|---------|---------|----------------|------------------------|"
+	scale_label.position = Vector2(770,1200)
+	scale_label.size = Vector2(465,60)
+	scale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	scale_label.add_theme_font_size_override("font_size",13)
+	scale_label.add_theme_color_override("font_color",Color(0.97,0.98,1.0))
+	canvas.add_child(scale_label)
 	var labels := [
 		["MONTE NEVOSO",-645,-710],
 		["LAGO AZZURRO",-250,-455],
