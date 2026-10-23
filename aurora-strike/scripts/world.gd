@@ -17,6 +17,7 @@ func _ready() -> void:
 	_build_terrain_relief()
 	_build_roads()
 	_build_country_roads()
+	_build_winding_roads()
 	_build_city_blocks()
 	_build_landmarks()
 	_build_district_details()
@@ -749,6 +750,26 @@ func _build_map_overlay_labels() -> void:
 		label.add_theme_color_override("font_outline_color",Color(0.025,0.045,0.055,1.0))
 		label.add_theme_constant_override("outline_size",5)
 		canvas.add_child(label)
+
+func _build_winding_roads() -> void:
+	var asphalt := _mat(Color(0.14,0.15,0.15),0.93)
+	var shoulder := _mat(Color(0.39,0.38,0.32),0.98)
+	var paths: Array[PackedVector2Array] = [
+		PackedVector2Array([Vector2(-425,-425),Vector2(-425,-485),Vector2(-410,-530),Vector2(-390,-570),Vector2(-355,-600)]),
+		PackedVector2Array([Vector2(-595,255),Vector2(-660,262),Vector2(-720,285),Vector2(-775,325),Vector2(-810,375),Vector2(-820,425),Vector2(-805,468)]),
+		PackedVector2Array([Vector2(-595,425),Vector2(-660,425),Vector2(-725,425),Vector2(-785,425),Vector2(-820,455),Vector2(-825,510),Vector2(-800,555)]),
+		PackedVector2Array([Vector2(-595,595),Vector2(-635,620),Vector2(-675,655),Vector2(-705,690),Vector2(-710,725)]),
+		PackedVector2Array([Vector2(85,595),Vector2(75,635),Vector2(42,668),Vector2(10,700),Vector2(5,735)]),
+		PackedVector2Array([Vector2(425,595),Vector2(470,622),Vector2(520,650),Vector2(585,680),Vector2(650,715),Vector2(690,755)]),
+		PackedVector2Array([Vector2(595,255),Vector2(655,255),Vector2(715,270),Vector2(765,300),Vector2(800,340)]),
+		PackedVector2Array([Vector2(595,-425),Vector2(680,-425),Vector2(750,-425),Vector2(815,-425),Vector2(835,-470),Vector2(850,-525),Vector2(865,-585)]),
+		PackedVector2Array([Vector2(-425,-595),Vector2(-465,-640),Vector2(-510,-690),Vector2(-565,-735)])
+	]
+	for path_index in range(paths.size()):
+		var path: PackedVector2Array = paths[path_index]
+		for i in range(path.size()-1):
+			_road_segment(path[i],path[i+1],17.0,shoulder,"POI_Road_Shoulder_%02d" % path_index)
+			_road_segment(path[i],path[i+1],11.0,asphalt,"POI_Winding_Road_%02d" % path_index)
 
 func _build_city_blocks() -> void:
 	var palettes: Array[Material] = [
