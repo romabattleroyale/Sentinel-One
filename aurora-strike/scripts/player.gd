@@ -72,9 +72,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		touch_look_active = event.pressed
 		last_touch_position = event.position
 	elif event is InputEventScreenDrag and camera_pivot:
-		var delta := event.position - last_touch_position
-		last_touch_position = event.position
-		if event.position.x > get_viewport().get_visible_rect().size.x * 0.42:
+		var drag_event := event as InputEventScreenDrag
+		var delta: Vector2 = drag_event.position - last_touch_position
+		last_touch_position = drag_event.position
+		if drag_event.position.x > get_viewport().get_visible_rect().size.x * 0.42:
 			_rotate_camera(delta)
 
 func _rotate_camera(delta: Vector2) -> void:
