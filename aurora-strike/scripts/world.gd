@@ -338,15 +338,7 @@ func _patch(node_name: String, size: Vector2, center: Vector2, material: Materia
 	add_child(patch)
 
 func _build_biomes() -> void:
-	# Color-coded landform zones break up the giant flat center into recognizable regions.
-	var meadow := _terrain_mat(Color(0.13,0.29,0.12),Color(0.31,0.42,0.18),101)
-	var forest_floor := _terrain_mat(Color(0.045,0.15,0.075),Color(0.15,0.29,0.11),102)
-	var snow := _terrain_mat(Color(0.78,0.82,0.84),Color(1.0,1.0,0.99),103)
-	var rock := _terrain_mat(Color(0.22,0.23,0.22),Color(0.44,0.43,0.40),104)
-	var sand := _terrain_mat(Color(0.66,0.45,0.23),Color(0.92,0.75,0.45),105)
-	var red_sand := _terrain_mat(Color(0.57,0.18,0.08),Color(0.92,0.39,0.16),106)
-	var farm := _terrain_mat(Color(0.27,0.29,0.12),Color(0.52,0.47,0.20),107)
-	var industry := _terrain_mat(Color(0.20,0.22,0.22),Color(0.43,0.44,0.41),108)
+	# Biome ground is blended on the detailed terrain grid; this function adds distinct lakes and water channels.
 	var lake_mat := _mat(Color(0.015,0.53,0.78),0.22,0.08)
 	lake_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var lake_mesh := CylinderMesh.new()
