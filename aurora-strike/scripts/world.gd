@@ -66,16 +66,69 @@ func _build_environment() -> void:
 	add_child(sun)
 
 func _build_terrain() -> void:
-	_box(self, "Ground_2km", Vector3(MAP_SIZE, 3, MAP_SIZE), Vector3(0,-1.5,0), _mat(Color(0.19,0.30,0.22)), true)
-	_box(self, "Urban_Base", Vector3(1420,1.2,1420), Vector3(0,0.15,0), _mat(Color(0.20,0.31,0.19),0.96), true)
-	var water := _mat(Color(0.055,0.23,0.34),0.24,0.12)
-	_box(self,"North_Water",Vector3(2000,0.6,290),Vector3(0,-0.4,-855),water)
-	_box(self,"South_Water",Vector3(2000,0.6,290),Vector3(0,-0.4,855),water)
-	_box(self,"West_Water",Vector3(290,0.6,1420),Vector3(-855,-0.4,0),water)
-	_box(self,"East_Water",Vector3(290,0.6,1420),Vector3(855,-0.4,0),water)
+	# Underwater collision bed and a continuous sea plane; land is an irregular triangulated island.
+	var seabed := StaticBody3D.new()
+	seabed.name = "Seabed_Collision"
+	add_child(seabed)
+	var seabed_shape := CollisionShape3D.new()
+	var seabed_box := BoxShape3D.new()
+	seabed_box.size = Vector3(2250,2,2250)
+	seabed_shape.shape = seabed_box
+	seabed_shape.position = Vector3(0,-1.35,0)
+	seabed.add_child(seabed_shape)
+	var sea_mesh := PlaneMesh.new()
+	sea_mesh.size = Vector2(2250,2250)
+	var sea := MeshInstance3D.new()
+	sea.name = "Open_Ocean"
+	sea.mesh = sea_mesh
+	sea.position.y = -0.12
+	sea.material_override = _mat(Color(0.018,0.19,0.34),0.2,0.12)
+	add_child(sea)
+	_build_island_surface()
+
+func _build_island_surface() -> void:
+	var outline := PackedVector2Array([
+		Vector2(-420,-965),Vector2(-625,-910),Vector2(-790,-790),Vector2(-855,-620),
+		Vector2(-950,-430),Vector2(-930,-265),Vector2(-855,-95),Vector2(-900,105),
+		Vector2(-930,300),Vector2(-850,495),Vector2(-790,650),Vector2(-660,820),
+		Vector2(-510,930),Vector2(-320,967),Vector2(-155,922),Vector2(25,955),
+		Vector2(210,920),Vector2(390,952),Vector2(575,905),Vector2(745,805),
+		Vector2(875,655),Vector2(950,465),Vector2(910,290),Vector2(952,105),
+		Vector2(900,-95),Vector2(930,-290),Vector2(850,-495),Vector2(720,-690),
+		Vector2(575,-835),Vector2(400,-925),Vector2(220,-885),Vector2(35,-930),
+		Vector2(-150,-875),Vector2(-300,-925)
+	])
+	var triangles := Geometry2D.triangulate_polygon(outline)
+	var vertices := PackedVector3Array()
+	for point in outline:
+		vertices.append(Vector3(point.x,0.08,point.y))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = triangles
+	var land_material := _mat(Color(0.20,0.34,0.18),0.96)
+	land_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var island_mesh := ArrayMesh.new()
+	island_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var land := MeshInstance3D.new()
+	land.name = "Irregular_Island_Landmass"
+	land.mesh = island_mesh
+	land.material_override = land_material
+	add_child(land)
+	var faces := PackedVector3Array()
+	for index in triangles:
+		faces.append(vertices[index])
+	var collision := StaticBody3D.new()
+	collision.name = "Island_Collision"
+	var collision_shape := CollisionShape3D.new()
+	var concave := ConcavePolygonShape3D.new()
+	concave.set_faces(faces)
+	collision_shape.shape = concave
+	collision.add_child(collision_shape)
+	add_child(collision)
 
 
-func _patch(node_name: String, size: Vector2, center: Vector2, material: Material, y: float = 0.79) -> void:
+func _patch(node_name: String, size: Vector2, center: Vector2, material: Material, y: float = 0.105) -> void:
 	_box(self, node_name, Vector3(size.x, 0.035, size.y), Vector3(center.x, y, center.y), material)
 
 func _build_biomes() -> void:
@@ -100,12 +153,12 @@ func _build_biomes() -> void:
 	var lake_mesh := CylinderMesh.new()
 	lake_mesh.top_radius = 118
 	lake_mesh.bottom_radius = 118
-	lake_mesh.height = 0.55
+	lake_mesh.height = 0.08
 	var lake := MeshInstance3D.new()
 	lake.name = "Lago_Azzurro"
 	lake.mesh = lake_mesh
 	lake.scale = Vector3(1.0,1.0,0.76)
-	lake.position = Vector3(-250,0.86,-455)
+	lake.position = Vector3(-250,0.14,-455)
 	lake.material_override = lake_mat
 	add_child(lake)
 	# Curved river down the middle-to-east corridor, with short overlapping segments.
@@ -114,7 +167,7 @@ func _build_biomes() -> void:
 		var z := -340.0 + float(i) * 63.0
 		var x := 185.0 + sin(float(i)*0.48)*95.0
 		var angle := cos(float(i)*0.48)*0.45
-		var seg := _box(self,"River_Channel_%02d" % i,Vector3(34,0.12,78),Vector3(x,0.86,z),river_mat)
+		var seg := _box(self,"River_Channel_%02d" % i,Vector3(34,0.12,78),Vector3(x,0.14,z),river_mat)
 		seg.rotation.y = angle
 	# Sea inlets and small offshore islets.
 	var isle_mat := _mat(Color(0.28,0.38,0.22))
@@ -150,7 +203,7 @@ func _mountain(pos: Vector3, radius: float, height: float, snow_cap: bool = fals
 	var node := MeshInstance3D.new()
 	node.name = "Mountain_Peak"
 	node.mesh = mesh
-	node.position = Vector3(pos.x,height/2.0+0.8,pos.y)
+	node.position = Vector3(pos.x,height/2.0+0.08,pos.y)
 	node.material_override = _mat(Color(0.63,0.28,0.14) if red_rock else (Color(0.32,0.34,0.34) if not snow_cap else Color(0.43,0.48,0.51)))
 	add_child(node)
 	if snow_cap:
@@ -161,7 +214,7 @@ func _mountain(pos: Vector3, radius: float, height: float, snow_cap: bool = fals
 		cap_mesh.rings = 2
 		var cap := MeshInstance3D.new()
 		cap.mesh = cap_mesh
-		cap.position = Vector3(pos.x,height*0.81+0.8,pos.y)
+		cap.position = Vector3(pos.x,height*0.81+0.08,pos.y)
 		cap.material_override = _mat(Color(0.90,0.94,0.96))
 		add_child(cap)
 
@@ -181,7 +234,7 @@ func _build_nature() -> void:
 		var x := rng.randf_range(115,520)
 		var z := rng.randf_range(-625,-205)
 		if Vector2(x,z).distance_to(Vector2(310,-410)) < 260:
-			_tree(self,Vector3(x,0.82,z),rng.randf_range(0.65,1.25))
+			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.65,1.25))
 	# Mixed green hills and autumn groves along the west side.
 	for i in range(95):
 		var x := rng.randf_range(-790,-330)
@@ -253,17 +306,17 @@ func _build_roads() -> void:
 	var line := _mat(Color(0.96,0.77,0.32),0.6)
 	var sidewalk := _mat(Color(0.52,0.52,0.49))
 	for x in [-510.0,-170.0,170.0,510.0]:
-		_box(self,"Road_NS",Vector3(24,0.18,1420),Vector3(x,0.85,0),road)
-		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x-15,0.92,0),sidewalk)
-		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x+15,0.92,0),sidewalk)
+		_box(self,"Road_NS",Vector3(24,0.18,1420),Vector3(x,0.16,0),road)
+		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x-15,0.21,0),sidewalk)
+		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x+15,0.21,0),sidewalk)
 		for z in range(-680,681,48):
-			_box(self,"LaneDash",Vector3(0.35,0.22,18),Vector3(x,0.98,z),line)
+			_box(self,"LaneDash",Vector3(0.35,0.22,18),Vector3(x,0.27,z),line)
 	for z in [-510.0,-170.0,170.0,510.0]:
-		_box(self,"Road_EW",Vector3(1420,0.18,24),Vector3(0,0.85,z),road)
-		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.92,z-15),sidewalk)
-		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.92,z+15),sidewalk)
+		_box(self,"Road_EW",Vector3(1420,0.18,24),Vector3(0,0.16,z),road)
+		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.21,z-15),sidewalk)
+		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.21,z+15),sidewalk)
 		for x in range(-680,681,48):
-			_box(self,"LaneDash",Vector3(18,0.22,0.35),Vector3(x,0.98,z),line)
+			_box(self,"LaneDash",Vector3(18,0.22,0.35),Vector3(x,0.27,z),line)
 
 
 func _road_segment(a: Vector2, b: Vector2, width: float, material: Material, node_name: String) -> void:
@@ -275,7 +328,7 @@ func _road_segment(a: Vector2, b: Vector2, width: float, material: Material, nod
 	var road_node := MeshInstance3D.new()
 	road_node.name = node_name
 	road_node.mesh = road_mesh
-	road_node.position = Vector3(mid.x,0.90,mid.y)
+	road_node.position = Vector3(mid.x,0.16,mid.y)
 	road_node.rotation.y = atan2(delta.x,delta.y)
 	road_node.material_override = material
 	add_child(road_node)
@@ -367,13 +420,13 @@ func _build_city_blocks() -> void:
 				var bx := rng.randf_range(-48,48)
 				var bz := rng.randf_range(-48,48)
 				var body_mat: Material = palettes[rng.randi_range(0,palettes.size()-1)]
-				_box(block,"Building_%d" % i,Vector3(w,h,d),Vector3(bx,h/2+1,bz),body_mat,true)
-				_box(block,"Roof_%d" % i,Vector3(w+1,1,d+1),Vector3(bx,h+1.5,bz),roof)
+				_box(block,"Building_%d" % i,Vector3(w,h,d),Vector3(bx,h/2+0.1,bz),body_mat,true)
+				_box(block,"Roof_%d" % i,Vector3(w+1,1,d+1),Vector3(bx,h+0.65,bz),roof)
 				for floor_idx in range(1,int(h/4.0)):
 					for side in [-1.0,1.0]:
-						_box(block,"WindowBand",Vector3(w*0.68,0.85,0.22),Vector3(bx,h/2+1+float(floor_idx)*3.5,bz+side*(d/2+0.13)),glass)
+						_box(block,"WindowBand",Vector3(w*0.68,0.85,0.22),Vector3(bx,h/2+0.1+float(floor_idx)*3.5,bz+side*(d/2+0.13)),glass)
 				if rng.randf() > 0.45:
-					_box(block,"Shopfront",Vector3(w*0.72,2.6,0.28),Vector3(bx,2.7,bz+d/2+0.18),glass)
+					_box(block,"Shopfront",Vector3(w*0.72,2.6,0.28),Vector3(bx,1.7,bz+d/2+0.18),glass)
 
 func _build_landmarks() -> void:
 	var stone := _mat(Color(0.69,0.62,0.49))
@@ -382,12 +435,12 @@ func _build_landmarks() -> void:
 	var station := Node3D.new()
 	station.name = "Aurora_Central_Station"
 	add_child(station)
-	_box(station,"Station_Main_Hall",Vector3(118,20,48),Vector3(0,11,0),stone,true)
-	_box(station,"Station_Glass_Front",Vector3(96,12,0.7),Vector3(0,12,24.4),dark)
-	_box(station,"Station_Roof",Vector3(126,2,54),Vector3(0,22,0),_mat(Color(0.22,0.25,0.27),0.4,0.35))
+	_box(station,"Station_Main_Hall",Vector3(118,20,48),Vector3(0,10.1,0),stone,true)
+	_box(station,"Station_Glass_Front",Vector3(96,12,0.7),Vector3(0,11.1,24.4),dark)
+	_box(station,"Station_Roof",Vector3(126,2,54),Vector3(0,21.1,0),_mat(Color(0.22,0.25,0.27),0.4,0.35))
 	for x in range(-48,49,16):
-		_box(station,"Facade_Pillar",Vector3(1.5,15,1.5),Vector3(x,8.5,25),stone)
-	_box(station,"Sign_Red",Vector3(30,3,0.6),Vector3(0,18,25.2),red)
+		_box(station,"Facade_Pillar",Vector3(1.5,15,1.5),Vector3(x,7.6,25),stone)
+	_box(station,"Sign_Red",Vector3(30,3,0.6),Vector3(0,17.1,25.2),red)
 	_box(self,"Civic_Tower",Vector3(28,96,28),Vector3(-270,49,270),_mat(Color(0.48,0.53,0.55)),true)
 	for y in range(12,94,12):
 		_box(self,"Tower_Window_Band",Vector3(28.4,2,28.4),Vector3(-270,float(y),270),dark)
@@ -396,7 +449,7 @@ func _build_landmarks() -> void:
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "Player"
-	player.position = Vector3(0,3,90)
+	player.position = Vector3(0,2.5,90)
 	add_child(player)
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
