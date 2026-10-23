@@ -198,6 +198,8 @@ func _patch(node_name: String, size: Vector2, center: Vector2, material: Materia
 	var patch := MeshInstance3D.new()
 	patch.name = node_name
 	patch.mesh = patch_mesh
+	if material is StandardMaterial3D:
+		(material as StandardMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
 	patch.position = Vector3(center.x,y,center.y)
 	patch.material_override = material
 	add_child(patch)
@@ -206,12 +208,12 @@ func _build_biomes() -> void:
 	# Color-coded landform zones break up the giant flat center into recognizable regions.
 	var meadow := _terrain_mat(Color(0.13,0.29,0.12),Color(0.31,0.42,0.18),101)
 	var forest_floor := _terrain_mat(Color(0.045,0.15,0.075),Color(0.15,0.29,0.11),102)
-	var snow := _terrain_mat(Color(0.67,0.73,0.77),Color(0.96,0.98,0.98),103)
+	var snow := _terrain_mat(Color(0.78,0.82,0.84),Color(1.0,1.0,0.99),103)
 	var rock := _terrain_mat(Color(0.22,0.23,0.22),Color(0.44,0.43,0.40),104)
-	var sand := _terrain_mat(Color(0.58,0.42,0.24),Color(0.84,0.68,0.40),105)
-	var red_sand := _terrain_mat(Color(0.45,0.16,0.08),Color(0.78,0.35,0.17),106)
+	var sand := _terrain_mat(Color(0.66,0.45,0.23),Color(0.92,0.75,0.45),105)
+	var red_sand := _terrain_mat(Color(0.57,0.18,0.08),Color(0.92,0.39,0.16),106)
 	var farm := _terrain_mat(Color(0.27,0.29,0.12),Color(0.52,0.47,0.20),107)
-	var industry := _terrain_mat(Color(0.15,0.17,0.17),Color(0.33,0.34,0.31),108)
+	var industry := _terrain_mat(Color(0.20,0.22,0.22),Color(0.43,0.44,0.41),108)
 	_patch("Green_Hills_Biome",Vector2(570,480),Vector2(-430,320),meadow)
 	_patch("Shadow_Forest_Biome",Vector2(470,480),Vector2(320,-410),forest_floor)
 	_patch("Snowfield_Biome",Vector2(470,390),Vector2(-565,-650),snow)
