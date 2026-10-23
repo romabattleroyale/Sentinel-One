@@ -244,37 +244,35 @@ def glb_export(objects,path):
  bpy.ops.object.select_all(action="DESELECT")
  return path.exists() and path.stat().st_size>64
 def export_tiles(terrain,outdir,rows):
- log("Clipping terrain into 64 250m tile GLBs")
- verts=[tuple(v.co) for v in terrain.data.vertices]; faces=[tuple(p.vertices) for p in terrain.data.polygons]; paths=[]
+ # Generate each tile directly from the same global height function and 12.5m lattice.
+ # 21x21 vertices per tile guarantees the seam vertices use exactly identical X/Z values.
+ log("Generating 64 individual terrain tile meshes with shared-edge sample coordinates")
+ paths=[]; step=TILE/20.0
  for j in range(N):
   for i in range(N):
-   x0=-1000+i*TILE;z0=-1000+j*TILE;x1=x0+TILE;z1=z0+TILE
-   tv=[];tf=[];lut={}
-   def vi(p):
-    key=tuple(round(k,5) for k in p)
-    if key not in lut:lut[key]=len(tv);tv.append((p[0]-x0,p[1],p[2]-z0))
-    return lut[key]
-   for face in faces:
-    tri=[verts[k] for k in face]
-    if max(v[0] for v in tri)<x0 or min(v[0] for v in tri)>x1 or max(v[2] for v in tri)<z0 or min(v[2] for v in tri)>z1:continue
-    if all(x0-1e-4<=v[0]<=x1+1e-4 and z0-1e-4<=v[2]<=z1+1e-4 for v in tri):
-     tf.append(tuple(vi(v) for v in tri))
-   if not tf:
-    # fallback low-density local grid for coastline-only tiles
-    for zz in range(13):
-     for xx in range(13):
-      wx=x0+xx*TILE/12;wz=z0+zz*TILE/12
-      if inside(wx,wz):lut[(xx,zz)]=len(tv);tv.append((wx-x0,height(wx,wz),wz-z0))
-    for (xx,zz),a in list(lut.items()):
-     if not isinstance(xx,int):continue
-     if (xx+1,zz) in lut and (xx,zz+1) in lut and (xx+1,zz+1) in lut:tf.extend([(a,lut[(xx,zz+1)],lut[(xx+1,zz)]),(lut[(xx+1,zz)],lut[(xx,zz+1)],lut[(xx+1,zz+1)])])
-   if not tf:continue
-   name="Tile_X%02d_Z%02d"%(i,j);col=collection("Export_"+name);tile=mesh(name,tv,tf,col,[M["grass"]])
+   x0=-1000+i*TILE; z0=-1000+j*TILE; x1=x0+TILE; z1=z0+TILE
+   tv=[]; tf=[]; cols=[]; valid=[]
+   for zz in range(21):
+    for xx in range(21):
+     wx=x0+xx*step; wz=z0+zz*step; ok=inside(wx,wz)
+     valid.append(ok)
+     tv.append((wx-x0,height(wx,wz) if ok else 0.0,wz-z0))
+     cols.append(terrain_color(wx,wz,height(wx,wz)) if ok else (0.02,0.04,0.06))
+   for zz in range(20):
+    for xx in range(20):
+     a=zz*21+xx; b=a+1; c=a+21; d=c+1
+     if valid[a] and valid[b] and valid[c] and valid[d]:
+      tf.extend([(a,c,b),(b,c,d)])
+   if not tf: continue
+   name="Tile_X%02d_Z%02d"%(i,j);col=collection("Export_"+name)
+   tile=mesh(name,tv,tf,col,[M["grass"]],colors=cols)
    tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0
    path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
-   rows.append(["terrain_tile",name,str(path),i,j,x0,z0,x1,z1,"procedural original; estimated heights; import at manifest origin only once"])
-   bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col);log(name+" exported")
+   rows.append(["terrain_tile",name,str(path),i,j,x0,z0,x1,z1,"procedural original; 12.5m grid; estimated heights; verify transform once in Godot"])
+   bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col)
+   log(name+" exported")
  return paths
+
 def main():
  OUT.mkdir(parents=True,exist_ok=True)
  for folder in ("tiles","poi","preview"):(OUT/folder).mkdir(parents=True,exist_ok=True)
