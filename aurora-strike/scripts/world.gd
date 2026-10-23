@@ -199,7 +199,8 @@ func _tree(parent: Node3D, pos: Vector3, scale_factor: float = 1.0, autumn: bool
 	parent.add_child(crown)
 
 func _mountain(pos: Vector3, radius: float, height: float, snow_cap: bool = false, red_rock: bool = false) -> void:
-	var mesh := ConeMesh.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.0
 	mesh.bottom_radius = radius
 	mesh.height = height
 	mesh.radial_segments = 7
@@ -211,7 +212,8 @@ func _mountain(pos: Vector3, radius: float, height: float, snow_cap: bool = fals
 	node.material_override = _mat(Color(0.63,0.28,0.14) if red_rock else (Color(0.32,0.34,0.34) if not snow_cap else Color(0.43,0.48,0.51)))
 	add_child(node)
 	if snow_cap:
-		var cap_mesh := ConeMesh.new()
+		var cap_mesh := CylinderMesh.new()
+		cap_mesh.top_radius = 0.0
 		cap_mesh.bottom_radius = radius*0.45
 		cap_mesh.height = height*0.38
 		cap_mesh.radial_segments = 7
