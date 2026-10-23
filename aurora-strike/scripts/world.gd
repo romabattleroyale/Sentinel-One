@@ -13,6 +13,7 @@ func _ready() -> void:
 	_build_landmarks()
 	_build_player()
 	_build_hud()
+	_apply_capture_view()
 
 func _mat(color: Color, roughness: float = 0.85, metallic: float = 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -184,3 +185,33 @@ func _build_hud() -> void:
 	hint.text = "WASD / joystick touch • Guarda ed esplora"
 	hint.position = Vector2(20,104)
 	canvas.add_child(hint)
+
+func _apply_capture_view() -> void:
+	var args := OS.get_cmdline_user_args()
+	var view := "player"
+	for arg in args:
+		if arg.begins_with("--view="):
+			view = arg.trim_prefix("--view=")
+	var camera := get_node_or_null("Player/CameraPivot/Camera3D") as Camera3D
+	if camera == null:
+		return
+	if view == "player":
+		return
+	camera.set_as_top_level(true)
+	match view:
+		"top":
+			camera.global_position = Vector3(0, 1650, 0)
+			camera.look_at(Vector3(0, 0, 0), Vector3(0, 0, -1))
+			camera.fov = 70
+		"station":
+			camera.global_position = Vector3(220, 190, 300)
+			camera.look_at(Vector3(0, 8, 0))
+			camera.fov = 65
+		"industrial":
+			camera.global_position = Vector3(-470, 180, 420)
+			camera.look_at(Vector3(0, 15, 170))
+			camera.fov = 68
+		"coast":
+			camera.global_position = Vector3(-650, 260, 450)
+			camera.look_at(Vector3(-800, 0, 0))
+			camera.fov = 68
