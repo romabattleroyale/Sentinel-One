@@ -6,6 +6,7 @@ var player: CharacterBody3D
 var capture_camera: Camera3D
 var map_overlay: CanvasLayer
 var current_capture_view := "player"
+var hud_layer: CanvasLayer
 
 func _ready() -> void:
 	rng.seed = 271023
@@ -222,7 +223,8 @@ func _build_biomes() -> void:
 	_patch("Red_Desert_Biome",Vector2(500,470),Vector2(570,650),red_sand)
 	_patch("Agriculture_Biome",Vector2(320,350),Vector2(615,220),farm)
 	_patch("Industrial_District_Ground",Vector2(310,260),Vector2(-110,400),industry)
-	var lake_mat := _mat(Color(0.035,0.38,0.55),0.22,0.12)
+	var lake_mat := _mat(Color(0.015,0.53,0.78),0.22,0.08)
+	lake_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var lake_mesh := CylinderMesh.new()
 	lake_mesh.top_radius = 118
 	lake_mesh.bottom_radius = 118
@@ -235,7 +237,8 @@ func _build_biomes() -> void:
 	lake.material_override = lake_mat
 	add_child(lake)
 	# Curved river down the middle-to-east corridor, with short overlapping segments.
-	var river_mat := _mat(Color(0.035,0.40,0.58),0.2,0.08)
+	var river_mat := _mat(Color(0.015,0.47,0.68),0.2,0.04)
+	river_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	for i in range(18):
 		var z := -340.0 + float(i) * 63.0
 		var x := 185.0 + sin(float(i)*0.48)*95.0
@@ -550,7 +553,7 @@ func _build_city_blocks() -> void:
 	]
 	var glass := _mat(Color(0.12,0.25,0.32),0.28,0.22)
 	var roof := _mat(Color(0.19,0.20,0.20))
-	var building_slots: Array[Vector2] = [Vector2(-32,-32),Vector2(32,-32),Vector2(-32,32),Vector2(32,32)]
+	var building_slots: Array[Vector2] = [Vector2(-42,-36),Vector2(0,-36),Vector2(42,-36),Vector2(-42,36),Vector2(0,36),Vector2(42,36)]
 	for gx in range(-4,5):
 		for gz in range(-3,4):
 			var cx := float(gx) * BLOCK_SPACING
@@ -561,7 +564,7 @@ func _build_city_blocks() -> void:
 			block.name = "Block_%d_%d" % [gx,gz]
 			block.position = Vector3(cx,0,cz)
 			add_child(block)
-			for i in range(rng.randi_range(3,4)):
+			for i in range(rng.randi_range(5,6)):
 				var slot_pos: Vector2 = building_slots[i]
 				var bx: float = slot_pos.x + rng.randf_range(-4.0,4.0)
 				var bz: float = slot_pos.y + rng.randf_range(-4.0,4.0)
@@ -646,6 +649,7 @@ func _build_player() -> void:
 func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
 	canvas.name = "HUD"
+	hud_layer = canvas
 	add_child(canvas)
 	var panel := PanelContainer.new()
 	panel.position = Vector2(18,18)
@@ -699,6 +703,8 @@ func _set_capture_view(view: String) -> void:
 	current_capture_view = view
 	if map_overlay != null:
 		map_overlay.visible = (view == "top")
+	if hud_layer != null:
+		hud_layer.visible = (view != "top")
 	capture_camera.current = true
 	if view == "player":
 		capture_camera.set_as_top_level(false)
