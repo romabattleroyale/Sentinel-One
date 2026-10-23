@@ -402,13 +402,13 @@ func _mountain(pos: Vector2, radius: float, height: float, snow_cap: bool = fals
 	if snow_cap:
 		var cap_mesh := CylinderMesh.new()
 		cap_mesh.top_radius = 0.0
-		cap_mesh.bottom_radius = radius*0.45
-		cap_mesh.height = height*0.38
+		cap_mesh.bottom_radius = radius*0.33
+		cap_mesh.height = height*0.25
 		cap_mesh.radial_segments = 7
 		cap_mesh.rings = 2
 		var cap := MeshInstance3D.new()
 		cap.mesh = cap_mesh
-		cap.position = Vector3(pos.x,height*0.81+0.08,pos.y)
+		cap.position = Vector3(pos.x,height*0.86+0.08,pos.y)
 		cap.material_override = _mat(Color(0.90,0.94,0.96))
 		add_child(cap)
 
@@ -505,11 +505,22 @@ func _build_terrain_relief() -> void:
 			_make_terrain_mound(Vector3(x,0,z),rng.randf_range(26.0,58.0),rng.randf_range(5.0,15.0),rng.randf_range(28.0,64.0),red_mats[rng.randi_range(0,red_mats.size()-1)],"Red_Desert_Mesa_Slope")
 
 func _make_terrain_mound(origin: Vector3, width: float, height: float, depth: float, material: Material, node_name: String) -> void:
-	var mesh := SphereMesh.new()
-	mesh.radius = 1.0
-	mesh.height = 2.0
-	mesh.radial_segments = 16
-	mesh.rings = 8
+	var mesh: PrimitiveMesh
+	if node_name.contains("Dune") or node_name.contains("Mesa"):
+		var mesa := CylinderMesh.new()
+		mesa.top_radius = 0.72
+		mesa.bottom_radius = 1.0
+		mesa.height = 2.0
+		mesa.radial_segments = 9
+		mesa.rings = 3
+		mesh = mesa
+	else:
+		var rolling := SphereMesh.new()
+		rolling.radius = 1.0
+		rolling.height = 2.0
+		rolling.radial_segments = 16
+		rolling.rings = 8
+		mesh = rolling
 	var mound := MeshInstance3D.new()
 	mound.name = node_name
 	mound.mesh = mesh
@@ -803,6 +814,33 @@ func _build_landmarks() -> void:
 	for x in range(-48,49,16):
 		_box(station,"Facade_Pillar",Vector3(1.5,15,1.5),Vector3(x,7.6,25),stone)
 	_box(station,"Sign_Red",Vector3(30,3,0.6),Vector3(0,17.1,25.2),red)
+	var station_sign := Label3D.new()
+	station_sign.name = "Station_Termini_3D_Sign"
+	station_sign.text = "STAZIONE TERMINI"
+	station_sign.font_size = 64
+	station_sign.pixel_size = 0.015
+	station_sign.outline_size = 6
+	station_sign.modulate = Color(1.0,0.98,0.88)
+	station_sign.position = Vector3(0,17.0,25.65)
+	station.add_child(station_sign)
+	var platform_mat := _mat(Color(0.48,0.49,0.46),0.92)
+	var canopy_mat := _mat(Color(0.25,0.29,0.31),0.46,0.27)
+	var rail_mat := _mat(Color(0.10,0.12,0.13),0.36,0.58)
+	var sleeper_mat := _mat(Color(0.22,0.18,0.13),0.92)
+	for platform_z in [-66.0,-38.0,38.0,66.0]:
+		_box(station,"Railway_Platform",Vector3(155,0.65,12),Vector3(0,0.48,platform_z),platform_mat,true)
+		_box(station,"Platform_Canopy",Vector3(156,0.75,12),Vector3(0,9.0,platform_z),canopy_mat)
+		for px in range(-70,71,35):
+			_box(station,"Platform_Support",Vector3(1.4,8.0,1.4),Vector3(float(px),4.4,platform_z),canopy_mat)
+			_box(station,"Platform_Light",Vector3(4.5,0.25,1.3),Vector3(float(px),9.45,platform_z),_mat(Color(0.87,0.81,0.59)))
+	# Four parallel tracks and short cross-sleepers make the station readable from above.
+	for track_z in [-80.0,-52.0,52.0,80.0]:
+		_box(station,"Steel_Rail_Left",Vector3(158,0.28,0.38),Vector3(0,0.87,track_z-2.0),rail_mat)
+		_box(station,"Steel_Rail_Right",Vector3(158,0.28,0.38),Vector3(0,0.87,track_z+2.0),rail_mat)
+		for px in range(-76,77,8):
+			_box(station,"Rail_Sleeper",Vector3(2.5,0.18,5.8),Vector3(float(px),0.64,track_z),sleeper_mat)
+	for pz in [-47.0,-19.0,19.0,47.0]:
+		_box(station,"Yellow_Platform_Edge",Vector3(152,0.12,0.65),Vector3(0,0.86,pz),_mat(Color(0.93,0.75,0.22)))
 	_box(self,"Civic_Tower",Vector3(28,96,28),Vector3(-270,49,270),_mat(Color(0.48,0.53,0.55)),true)
 	for y in range(12,94,12):
 		_box(self,"Tower_Window_Band",Vector3(28.4,2,28.4),Vector3(-270,float(y),270),dark)
