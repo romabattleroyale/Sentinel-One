@@ -121,13 +121,17 @@ func _build_island_surface() -> void:
 	land.material_override = land_material
 	add_child(land)
 	var faces := PackedVector3Array()
-	for index in triangles:
-		faces.append(vertices[index])
+	for i in range(0,triangles.size(),3):
+		# Reverse winding in X/Z so collision triangle normals face upward.
+		faces.append(vertices[triangles[i]])
+		faces.append(vertices[triangles[i+2]])
+		faces.append(vertices[triangles[i+1]])
 	var collision := StaticBody3D.new()
 	collision.name = "Island_Collision"
 	var collision_shape := CollisionShape3D.new()
 	var concave := ConcavePolygonShape3D.new()
 	concave.set_faces(faces)
+	concave.backface_collision = true
 	collision_shape.shape = concave
 	collision.add_child(collision_shape)
 	add_child(collision)
