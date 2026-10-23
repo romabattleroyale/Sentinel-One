@@ -1,0 +1,17 @@
+id,label,x,z,coordinates_status,biome
+01_Monte_Nevoso,Monte Nevoso,-531,-719,estimated_from_concept,snow_mountain
+02_Lago_Azzurro,Lago Azzurro,-94,-633,estimated_from_concept,lake
+03_Bosco_Ombra,Bosco Ombra,227,-703,estimated_from_concept,shadow_forest
+04_Isole_del_Relitto,Isole del Relitto,719,-734,estimated_from_concept,wreck_islands
+05_Porto,Porto,-766,-250,estimated_from_concept,port
+06_Citta_Centrale,Città Centrale,-297,-250,estimated_from_concept,city
+07_Stazione_Termini,Stazione Termini,195,-242,estimated_from_concept,station
+08_Quartiere_Residenziale,Quartiere Residenziale,703,-375,estimated_from_concept,residential
+09_Colline_Verdi,Colline Verdi,-594,39,estimated_from_concept,green_hills
+10_Riviera,Riviera,-766,289,estimated_from_concept,riviera
+11_Zona_Industriale,Zona Industriale,31,70,estimated_from_concept,industrial
+12_Centro_Commerciale,Centro Commerciale,406,78,estimated_from_concept,commercial
+13_Zona_Agricola,Zona Agricola,719,78,estimated_from_concept,agriculture
+14_Base_Militare,Base Militare,-367,422,estimated_from_concept,military
+15_Cava_Desolata,Cava Desolata,31,523,estimated_from_concept,quarry
+16_Deserto_Rosso,Deserto Rosso,641,438,estimated_from_concept,red_desert
