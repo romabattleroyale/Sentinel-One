@@ -15,16 +15,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install display capture tools
-        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool
+      - name: Install display and Blender tools
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool blender
+      - name: Generate island geometry with Blender
+        working-directory: aurora-strike
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/aurora-strike-generated
+          AURORA_OUTPUT_DIR=/tmp/aurora-strike-generated blender --background --python tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
+          mkdir -p world/generated_blender
+          cp /tmp/aurora-strike-generated/AURORA_STRIKE_Master_Preview.glb world/generated_blender/AURORA_STRIKE_Master_Preview.glb
+          test -s world/generated_blender/AURORA_STRIKE_Master_Preview.glb
       - name: Install Godot 4.5.1
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.5.1
           use-dotnet: false
-      - name: Import project
+      - name: Import Blender GLB and verify scene selection
         working-directory: aurora-strike
-        run: godot --headless --editor --path . --quit
+        run: |
+          set -o pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee /tmp/aurora-godot-import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-godot-import.log; then exit 1; fi
       - name: Configure square viewport for full-map screenshots
         working-directory: aurora-strike
         run: sed -i 's|window/size/viewport_height=720|window/size/viewport_height=1280|' project.godot
@@ -61,6 +73,7 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then cat ../artifacts/aurora-runtime/godot-runtime.log; exit 1; fi
+          grep -q 'AURORA_MAP_SOURCE | res://world/generated_blender/AURORA_STRIKE_Master_Preview.glb' ../artifacts/aurora-runtime/godot-runtime.log
           WINDOW_ID=$(xdotool search --onlyvisible --name 'AURORA STRIKE' 2>/dev/null | head -n 1 || true)
           if [ -n "$WINDOW_ID" ]; then xdotool windowfocus "$WINDOW_ID" 2>/dev/null || true; fi
           # _ready logs before the first complete rendered frame on software GL.
