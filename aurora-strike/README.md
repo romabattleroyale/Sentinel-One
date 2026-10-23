@@ -20,3 +20,10 @@ Le GitHub Actions `AURORA STRIKE runtime check` e `AURORA STRIKE graphical runti
 
 ## Limiti conosciuti
 Questa è una build giocabile in evoluzione, non ancora una replica fotorealistica della reference. Il terreno ha biomi procedurali e rilievi semplificati, e parte degli edifici è modulare/procedurale; le sagome naturali, i POI esplorabili interni, la varietà dei dettagli e il livello artistico richiedono ancora lavoro. I risultati runtime vanno valutati separando i test tecnici dalla fedeltà estetica finale.
+
+
+## Blender map pipeline
+
+The offline authoring pipeline is in `tools/blender/`. Run `aurora_map_gen.py` in Blender 3.6+ or 4.x to generate the estimated 2000 × 2000 m island, tile GLBs, modular POI GLBs, editable Blender source, overview PNG and CSV manifest. The generator follows the coordinate convention and sixteen approximate POI anchors from pages 3 and 5 of the production manual. Page 8 altitude bands and all intermediate terrain boundaries are art-direction estimates.
+
+When `world/generated_blender/AURORA_STRIKE_Master_Preview.glb` is present, Godot loads it and adds a static terrain collision mesh; if the file is absent, Godot retains the existing procedural fallback. The graphical runtime workflow builds the Blender master first and then captures multiple camera views from Godot.
