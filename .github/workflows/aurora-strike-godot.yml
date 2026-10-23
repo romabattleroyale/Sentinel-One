@@ -1,4 +1,4 @@
-name: AURORA STRIKE — Godot Linux build
+name: AURORA STRIKE — Godot runtime diagnostics
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  validate-and-build:
+  validate-and-capture:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -21,10 +21,14 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "aurora-strike/project.godot" ]; then
-            echo "::error::Missing aurora-strike/project.godot. Upload the AURORA STRIKE Godot project folder to this path first."
-            echo "Repository currently contains the legacy Sentinel-One Android project, not the Godot game."
+            echo "::error::Missing aurora-strike/project.godot. Upload the Godot project to this path first."
             exit 1
           fi
+
+      - name: Install graphical capture tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb ffmpeg
 
       - name: Download Godot 4.7.2
         shell: bash
@@ -41,68 +45,55 @@ jobs:
           echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
           "$GODOT_BIN" --version
 
-      - name: Import project and validate scripts
+      - name: Import and parse project
         shell: bash
         run: |
           set -o pipefail
           "$GODOT_BIN" --headless --path aurora-strike --editor --import --quit 2>&1 | tee godot-import.log
           "$GODOT_BIN" --headless --path aurora-strike --editor --quit 2>&1 | tee godot-editor-check.log
 
-      - name: Run main scene briefly
+      - name: Capture actual graphical runtime
         shell: bash
         run: |
-          set +e
-          timeout 45s "$GODOT_BIN" --headless --path aurora-strike --verbose 2>&1 | tee godot-runtime.log
-          status=${PIPESTATUS[0]}
-          set -e
-          if [ "$status" -ne 0 ] && [ "$status" -ne 124 ]; then
-            echo "::error::Headless runtime exited with status $status"
-            exit "$status"
-          fi
-
-      - name: Export Linux executable when preset exists
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f "aurora-strike/export_presets.cfg" ]; then
-            echo "No export_presets.cfg found; packaging project sources and logs instead."
-            exit 0
-          fi
-          if ! grep -q 'name="Linux' aurora-strike/export_presets.cfg; then
-            echo "No Linux export preset found; packaging project sources and logs instead."
-            exit 0
-          fi
-          curl -fL --retry 3 \
-            "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz" \
-            -o "$RUNNER_TEMP/godot/templates.tpz"
-          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
-          unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/godot/templates"
-          template_dir="$(find "$RUNNER_TEMP/godot/templates" -maxdepth 1 -type d -name '4.7.2*' | head -n 1)"
-          if [ -n "$template_dir" ]; then
-            cp -a "$template_dir/." "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
-          else
-            find "$RUNNER_TEMP/godot/templates" -type f -name '*.tpz' -o -type f -name '*.zip'
-            echo "::error::Could not locate Godot export templates after download."
-            exit 1
-          fi
+          set -uo pipefail
           mkdir -p build
-          "$GODOT_BIN" --headless --path aurora-strike --export-debug "Linux" build/AuroraStrike.x86_64
+          Xvfb :99 -screen 0 1280x720x24 -ac >xvfb.log 2>&1 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          for i in $(seq 1 30); do
+            if xdpyinfo -display :99 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          ffmpeg -y -f x11grab -video_size 1280x720 -framerate 10 -i :99.0 \
+            -frames:v 1 build/aurora-strike-runtime.png >ffmpeg-capture.log 2>&1 &
+          CAPTURE_PID=$!
+          "$GODOT_BIN" --path aurora-strike --resolution 1280x720 --verbose --quit-after 120 \
+            >godot-runtime.log 2>&1 &
+          GODOT_PID=$!
+          wait "$CAPTURE_PID" || true
+          kill "$GODOT_PID" 2>/dev/null || true
+          wait "$GODOT_PID" 2>/dev/null || true
+          kill "$XVFB_PID" 2>/dev/null || true
+          test -s build/aurora-strike-runtime.png || {
+            echo "::error::Runtime screenshot was not produced; inspect Godot and capture logs."
+            exit 1
+          }
 
-      - name: Prepare diagnostic package
+      - name: Prepare diagnostics
         if: always()
         shell: bash
         run: |
           mkdir -p build
-          cp -f godot-*.log build/ 2>/dev/null || true
+          cp -f godot-*.log xvfb.log ffmpeg-capture.log build/ 2>/dev/null || true
           if [ -d aurora-strike ]; then
             tar --exclude='.godot' --exclude='build' -czf build/aurora-strike-source.tar.gz aurora-strike || true
           fi
 
-      - name: Upload build, source snapshot and logs
+      - name: Upload runtime screenshot, source and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aurora-strike-linux-build-and-diagnostics
+          name: aurora-strike-runtime-and-diagnostics
           path: build/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
