@@ -28,7 +28,7 @@ jobs:
       - name: Install graphical capture tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb ffmpeg
+          sudo apt-get install -y xvfb ffmpeg x11-utils
 
       - name: Download Godot 4.7.2
         shell: bash
@@ -64,17 +64,17 @@ jobs:
             if xdpyinfo -display :99 >/dev/null 2>&1; then break; fi
             sleep 1
           done
-          ffmpeg -y -f x11grab -video_size 1280x720 -framerate 10 -i :99.0 \
-            -frames:v 1 build/aurora-strike-runtime.png >ffmpeg-capture.log 2>&1 &
-          CAPTURE_PID=$!
-          "$GODOT_BIN" --path aurora-strike --resolution 1280x720 --verbose --quit-after 120 \
+          "$GODOT_BIN" --path aurora-strike --resolution 1280x720 --verbose --quit-after 600 \
             >godot-runtime.log 2>&1 &
           GODOT_PID=$!
-          wait "$CAPTURE_PID" || true
+          sleep 4
+          ffmpeg -y -f x11grab -video_size 1280x720 -framerate 1 -i :99.0 \
+            -frames:v 1 build/aurora-strike-runtime.png >ffmpeg-capture.log 2>&1
+          CAPTURE_STATUS=$?
           kill "$GODOT_PID" 2>/dev/null || true
           wait "$GODOT_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
-          test -s build/aurora-strike-runtime.png || {
+          test "$CAPTURE_STATUS" -eq 0 && test -s build/aurora-strike-runtime.png || {
             echo "::error::Runtime screenshot was not produced; inspect Godot and capture logs."
             exit 1
           }
