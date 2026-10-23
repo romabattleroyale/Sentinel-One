@@ -104,7 +104,11 @@ func _build_island_surface() -> void:
 		vertices.append(Vector3(point.x,0.08,point.y))
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
+	var normals := PackedVector3Array()
+	for _point in outline:
+		normals.append(Vector3.UP)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
 	arrays[Mesh.ARRAY_INDEX] = triangles
 	var land_material := _mat(Color(0.20,0.34,0.18),0.96)
 	land_material.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -262,7 +266,7 @@ func _build_district_details() -> void:
 	# Agriculture rows and a silo group in the east.
 	for field in range(4):
 		for row in range(8):
-			_box(self,"Crop_Row",Vector3(5,0.5,62),Vector3(515+float(field)*30,1.05,110+float(row)*18),crop_colors[(field+row)%3])
+			_box(self,"Crop_Row",Vector3(5,0.5,62),Vector3(515+float(field)*30,0.36,110+float(row)*18),crop_colors[(field+row)%3])
 	for i in range(3):
 		var silo := CylinderMesh.new()
 		silo.top_radius = 8
@@ -271,7 +275,7 @@ func _build_district_details() -> void:
 		var silo_node := MeshInstance3D.new()
 		silo_node.name = "Farm_Silo"
 		silo_node.mesh = silo
-		silo_node.position = Vector3(660,13,250+float(i)*25)
+		silo_node.position = Vector3(660,12.08,250+float(i)*25)
 		silo_node.material_override = metal
 		add_child(silo_node)
 	# Industrial tanks, halls, stacks and fenced compound.
@@ -283,23 +287,23 @@ func _build_district_details() -> void:
 		var tank := MeshInstance3D.new()
 		tank.name = "Industrial_Tank"
 		tank.mesh = tank_mesh
-		tank.position = Vector3(-155+float(i)*42,11,390)
+		tank.position = Vector3(-155+float(i)*42,10.08,390)
 		tank.material_override = metal
 		add_child(tank)
-	_box(self,"Factory_Hall",Vector3(105,18,48),Vector3(-120,10,470),_mat(Color(0.34,0.37,0.36)),true)
-	_box(self,"Factory_Roof",Vector3(109,2,52),Vector3(-120,20,470),_mat(Color(0.18,0.22,0.23),0.55,0.25))
+	_box(self,"Factory_Hall",Vector3(105,18,48),Vector3(-120,9.08,470),_mat(Color(0.34,0.37,0.36)),true)
+	_box(self,"Factory_Roof",Vector3(109,2,52),Vector3(-120,18.08,470),_mat(Color(0.18,0.22,0.23),0.55,0.25))
 	# Military runway, hangars and watch towers.
-	_box(self,"Military_Runway",Vector3(24,0.35,290),Vector3(-630,0.92,610),_mat(Color(0.17,0.19,0.20)))
-	_box(self,"Runway_Centreline",Vector3(0.6,0.45,255),Vector3(-630,1.1,610),_mat(Color(0.86,0.84,0.71)))
+	_box(self,"Military_Runway",Vector3(24,0.35,290),Vector3(-630,0.17,610),_mat(Color(0.17,0.19,0.20)))
+	_box(self,"Runway_Centreline",Vector3(0.6,0.45,255),Vector3(-630,0.36,610),_mat(Color(0.86,0.84,0.71)))
 	for i in range(3):
-		_box(self,"Military_Hangar",Vector3(44,16,31),Vector3(-710+float(i)*65,9,590),metal,true)
-		_box(self,"Guard_Tower",Vector3(5,17,5),Vector3(-760+float(i)*120,9,530),concrete,true)
+		_box(self,"Military_Hangar",Vector3(44,16,31),Vector3(-710+float(i)*65,8.08,590),metal,true)
+		_box(self,"Guard_Tower",Vector3(5,17,5),Vector3(-760+float(i)*120,8.58,530),concrete,true)
 	# Small residential blocks and rooftop details.
 	for i in range(18):
 		var x := 500.0 + float(i%6)*25.0
 		var z := -30.0 + float(i/6)*28.0
-		_box(self,"Residential_House",Vector3(18,8,18),Vector3(x,4.8,z),_mat(Color(0.61,0.51,0.39)),true)
-		_box(self,"House_Roof",Vector3(20,1.2,20),Vector3(x,9.4,z),_mat(Color(0.28,0.19,0.15)))
+		_box(self,"Residential_House",Vector3(18,8,18),Vector3(x,4.08,z),_mat(Color(0.61,0.51,0.39)),true)
+		_box(self,"House_Roof",Vector3(20,1.2,20),Vector3(x,8.7,z),_mat(Color(0.28,0.19,0.15)))
 
 func _build_roads() -> void:
 	var road := _mat(Color(0.075,0.085,0.095))
@@ -385,7 +389,7 @@ func _build_map_overlay_labels() -> void:
 	for item in labels:
 		var label := Label.new()
 		label.text = item[0]
-		label.position = Vector2(640.0+float(item[1])*0.55,640.0+float(item[2])*0.55)
+		label.position = Vector2(520.0+float(item[1])*0.55,623.0+float(item[2])*0.55)
 		label.size = Vector2(245,34)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
