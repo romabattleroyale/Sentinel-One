@@ -657,7 +657,7 @@ func _build_hud() -> void:
 func _apply_capture_view() -> void:
 	var args := OS.get_cmdline_user_args()
 	var view := "player"
-	if args.size() > 0:
+	if args.size() > 0 or OS.get_environment("AURORA_CAPTURE") == "1":
 		get_window().size = Vector2i(1280,1280)
 	for arg in args:
 		if arg.begins_with("--view="):
@@ -682,6 +682,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _set_capture_view(view: String) -> void:
 	if capture_camera == null:
 		return
+	if view == "top" and map_overlay == null:
+		_build_map_overlay_labels()
 	current_capture_view = view
 	if map_overlay != null:
 		map_overlay.visible = (view == "top")
