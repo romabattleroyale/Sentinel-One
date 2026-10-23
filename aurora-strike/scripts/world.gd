@@ -80,7 +80,13 @@ func _build_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	env.sky = Sky.new()
-	env.sky.sky_material = ProceduralSkyMaterial.new()
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color(0.055,0.19,0.43)
+	sky_material.sky_horizon_color = Color(0.47,0.67,0.83)
+	sky_material.ground_bottom_color = Color(0.16,0.21,0.24)
+	sky_material.ground_horizon_color = Color(0.44,0.51,0.54)
+	sky_material.sun_angle_max = 18.0
+	env.sky.sky_material = sky_material
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.48, 0.57, 0.68)
 	env.ambient_light_energy = 0.55
@@ -110,7 +116,9 @@ func _build_terrain() -> void:
 	sea.name = "Open_Ocean"
 	sea.mesh = sea_mesh
 	sea.position.y = -0.12
-	sea.material_override = _mat(Color(0.018,0.19,0.34),0.2,0.12)
+	var ocean_material := _mat(Color(0.015,0.18,0.31),0.48,0.0)
+	ocean_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sea.material_override = ocean_material
 	add_child(sea)
 	_build_island_surface()
 
