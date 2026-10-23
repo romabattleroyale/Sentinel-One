@@ -427,8 +427,7 @@ func _build_nature() -> void:
 	for i in range(180):
 		var x := rng.randf_range(115,520)
 		var z := rng.randf_range(-625,-205)
-		if Vector2(x,z).distance_to(Vector2(310,-410)) < 260:
-			if not _is_urban_block(x,z):
+		if Vector2(x,z).distance_to(Vector2(310,-410)) < 260 and not _is_urban_block(x,z):
 			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.65,1.25))
 	# Mixed green hills and autumn groves along the west side.
 	for i in range(95):
