@@ -126,36 +126,80 @@ func _build_island_surface() -> void:
 		Vector2(575,-835),Vector2(400,-925),Vector2(220,-885),Vector2(35,-930),
 		Vector2(-150,-875),Vector2(-300,-925)
 	])
-	var triangles := Geometry2D.triangulate_polygon(outline)
-	var vertices := PackedVector3Array()
-	var land_uv := PackedVector2Array()
+	var outline_triangles := Geometry2D.triangulate_polygon(outline)
+	var outline_vertices := PackedVector3Array()
 	for point in outline:
-		vertices.append(Vector3(point.x,0.08,point.y))
-		land_uv.append(Vector2(point.x/48.0,point.y/48.0))
+		outline_vertices.append(Vector3(point.x,0.08,point.y))
+	# Dense island grid lets biomes blend naturally instead of using hard polygon plates.
+	const TERRAIN_STEP := 28.0
+	var min_x := -950.0
+	var max_x := 950.0
+	var min_z := -965.0
+	var max_z := 967.0
+	var columns := int(ceil((max_x-min_x)/TERRAIN_STEP))+1
+	var rows := int(ceil((max_z-min_z)/TERRAIN_STEP))+1
+	var mesh_vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uv := PackedVector2Array()
+	var colors := PackedColorArray()
+	var inside := PackedByteArray()
+	var color_noise := FastNoiseLite.new()
+	color_noise.seed = 211
+	color_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	color_noise.frequency = 0.009
+	color_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	color_noise.fractal_octaves = 4
+	var detail_noise := FastNoiseLite.new()
+	detail_noise.seed = 715
+	detail_noise.frequency = 0.075
+	for iz in range(rows):
+		var z := min_z + float(iz)*TERRAIN_STEP
+		for ix in range(columns):
+			var x := min_x + float(ix)*TERRAIN_STEP
+			var valid := Geometry2D.is_point_in_polygon(Vector2(x,z),outline)
+			inside.append(1 if valid else 0)
+			mesh_vertices.append(Vector3(x,0.08,z))
+			normals.append(Vector3.UP)
+			uv.append(Vector2(x/34.0,z/34.0))
+			colors.append(_terrain_color_at(x,z,color_noise.get_noise_2d(x,z),detail_noise.get_noise_2d(x,z)))
+	var indices := PackedInt32Array()
+	for iz in range(rows-1):
+		for ix in range(columns-1):
+			var i00 := iz*columns+ix
+			var i10 := i00+1
+			var i01 := i00+columns
+			var i11 := i01+1
+			if inside[i00] == 1 and inside[i10] == 1 and inside[i01] == 1 and inside[i11] == 1:
+				indices.append(i00)
+				indices.append(i01)
+				indices.append(i10)
+				indices.append(i10)
+				indices.append(i01)
+				indices.append(i11)
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
-	var normals := PackedVector3Array()
-	for _point in outline:
-		normals.append(Vector3.UP)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_VERTEX] = mesh_vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_TEX_UV] = land_uv
-	arrays[Mesh.ARRAY_INDEX] = triangles
-	var land_material := _terrain_mat(Color(0.12,0.25,0.12),Color(0.29,0.39,0.17),211)
-	land_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var island_mesh := ArrayMesh.new()
-	island_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	arrays[Mesh.ARRAY_TEX_UV] = uv
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var terrain_mesh := ArrayMesh.new()
+	terrain_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var terrain_material := _terrain_mat(Color(0.91,0.91,0.91),Color(1.0,1.0,1.0),211)
+	terrain_material.vertex_color_use_as_albedo = true
+	terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	terrain_material.roughness = 0.98
 	var land := MeshInstance3D.new()
-	land.name = "Irregular_Island_Landmass"
-	land.mesh = island_mesh
-	land.material_override = land_material
+	land.name = "Procedural_Biome_Terrain"
+	land.mesh = terrain_mesh
+	land.material_override = terrain_material
 	add_child(land)
+	# Collision remains aligned with the island perimeter; the shaded terrain uses the dense grid.
 	var faces := PackedVector3Array()
-	for i in range(0,triangles.size(),3):
-		# Reverse winding in X/Z so collision triangle normals face upward.
-		faces.append(vertices[triangles[i]])
-		faces.append(vertices[triangles[i+2]])
-		faces.append(vertices[triangles[i+1]])
+	for i in range(0,outline_triangles.size(),3):
+		faces.append(outline_vertices[outline_triangles[i]])
+		faces.append(outline_vertices[outline_triangles[i+2]])
+		faces.append(outline_vertices[outline_triangles[i+1]])
 	var collision := StaticBody3D.new()
 	collision.name = "Island_Collision"
 	var collision_shape := CollisionShape3D.new()
@@ -165,7 +209,86 @@ func _build_island_surface() -> void:
 	collision_shape.shape = concave
 	collision.add_child(collision_shape)
 	add_child(collision)
+	_add_coast_ring(outline,0.962,1.0,0.105,false)
+	_add_coast_ring(outline,1.0,1.035,-0.035,true)
 
+func _terrain_color_at(x: float, z: float, broad_noise: float, detail_noise: float) -> Color:
+	var color := Color(0.29,0.45,0.20)
+	var mask := exp(-0.5*(pow((x+620.0)/285.0,2.0)+pow((z+690.0)/230.0,2.0)))
+	color = color.lerp(Color(0.82,0.87,0.89),clampf(mask*1.08,0.0,1.0))
+	mask = exp(-0.5*(pow((x-320.0)/300.0,2.0)+pow((z+415.0)/295.0,2.0)))
+	color = color.lerp(Color(0.12,0.30,0.15),clampf(mask*1.12,0.0,1.0))
+	mask = exp(-0.5*(pow((x+555.0)/310.0,2.0)+pow((z-315.0)/250.0,2.0)))
+	color = color.lerp(Color(0.36,0.51,0.23),clampf(mask*0.92,0.0,1.0))
+	mask = exp(-0.5*(pow((x+800.0)/190.0,2.0)+pow((z-430.0)/275.0,2.0)))
+	color = color.lerp(Color(0.76,0.68,0.48),clampf(mask*0.88,0.0,1.0))
+	mask = exp(-0.5*(pow((x+110.0)/225.0,2.0)+pow((z-405.0)/195.0,2.0)))
+	color = color.lerp(Color(0.38,0.40,0.36),clampf(mask*0.94,0.0,1.0))
+	mask = exp(-0.5*(pow((x-650.0)/255.0,2.0)+pow((z-230.0)/200.0,2.0)))
+	color = color.lerp(Color(0.49,0.48,0.23),clampf(mask*0.98,0.0,1.0))
+	mask = exp(-0.5*(pow((x-5.0)/285.0,2.0)+pow((z-690.0)/250.0,2.0)))
+	color = color.lerp(Color(0.75,0.60,0.38),clampf(mask*1.05,0.0,1.0))
+	mask = exp(-0.5*(pow((x-575.0)/295.0,2.0)+pow((z-655.0)/270.0,2.0)))
+	color = color.lerp(Color(0.77,0.32,0.15),clampf(mask*1.15,0.0,1.0))
+	var variation := clampf(0.98+broad_noise*0.13+detail_noise*0.055,0.74,1.12)
+	return Color(clampf(color.r*variation,0.0,1.0),clampf(color.g*variation,0.0,1.0),clampf(color.b*variation,0.0,1.0),1.0)
+
+func _add_coast_ring(outline: PackedVector2Array, inner_scale: float, outer_scale: float, y: float, water_ring: bool) -> void:
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uv := PackedVector2Array()
+	var colors := PackedColorArray()
+	var indices := PackedInt32Array()
+	for point in outline:
+		var inner := point*inner_scale
+		var outer := point*outer_scale
+		vertices.append(Vector3(inner.x,0,inner.y))
+		vertices.append(Vector3(outer.x,0,outer.y))
+		normals.append(Vector3.UP)
+		normals.append(Vector3.UP)
+		uv.append(Vector2(inner.x/32.0,inner.y/32.0))
+		uv.append(Vector2(outer.x/32.0,outer.y/32.0))
+		if water_ring:
+			colors.append(Color(0.06,0.77,0.82))
+			colors.append(Color(0.015,0.27,0.47))
+		else:
+			var shore := Color(0.82,0.71,0.50)
+			if point.y < -560.0 and point.x < -200.0:
+				shore = Color(0.83,0.88,0.89)
+			elif point.y > 350.0 and point.x > 320.0:
+				shore = Color(0.75,0.35,0.19)
+			elif point.x > 550.0 and point.y < 200.0:
+				shore = Color(0.53,0.53,0.30)
+			colors.append(shore.lightened(0.05))
+			colors.append(shore.darkened(0.08))
+	for i in range(outline.size()):
+		var nxt := (i+1)%outline.size()
+		indices.append(i*2)
+		indices.append(i*2+1)
+		indices.append(nxt*2)
+		indices.append(i*2+1)
+		indices.append(nxt*2+1)
+		indices.append(nxt*2)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uv
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var ring_mesh := ArrayMesh.new()
+	ring_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.roughness = 0.93 if not water_ring else 0.26
+	material.metallic = 0.01 if not water_ring else 0.08
+	var ring := MeshInstance3D.new()
+	ring.name = "Island_Shoreline_Beach" if not water_ring else "Turquoise_Shallow_Water_Ring"
+	ring.mesh = ring_mesh
+	ring.material_override = material
+	ring.position.y = y
+	add_child(ring)
 
 func _patch(node_name: String, size: Vector2, center: Vector2, material: Material, y: float = 0.105) -> void:
 	# Rough-edged mesh patches look organic in the map overview rather than like rectangles.
@@ -216,14 +339,6 @@ func _build_biomes() -> void:
 	var red_sand := _terrain_mat(Color(0.57,0.18,0.08),Color(0.92,0.39,0.16),106)
 	var farm := _terrain_mat(Color(0.27,0.29,0.12),Color(0.52,0.47,0.20),107)
 	var industry := _terrain_mat(Color(0.20,0.22,0.22),Color(0.43,0.44,0.41),108)
-	_patch("Green_Hills_Biome",Vector2(570,480),Vector2(-430,320),meadow)
-	_patch("Shadow_Forest_Biome",Vector2(470,480),Vector2(320,-410),forest_floor)
-	_patch("Snowfield_Biome",Vector2(470,390),Vector2(-565,-650),snow)
-	_patch("Mountain_Rock_Biome",Vector2(470,350),Vector2(-475,-485),rock)
-	_patch("Desolate_Quarry_Biome",Vector2(540,450),Vector2(0,690),sand)
-	_patch("Red_Desert_Biome",Vector2(500,470),Vector2(570,650),red_sand)
-	_patch("Agriculture_Biome",Vector2(320,350),Vector2(615,220),farm)
-	_patch("Industrial_District_Ground",Vector2(310,260),Vector2(-110,400),industry)
 	var lake_mat := _mat(Color(0.015,0.53,0.78),0.22,0.08)
 	lake_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var lake_mesh := CylinderMesh.new()
