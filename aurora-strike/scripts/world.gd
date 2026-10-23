@@ -50,19 +50,19 @@ func _build_environment() -> void:
 	env.sky.sky_material = ProceduralSkyMaterial.new()
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.48, 0.57, 0.68)
-	env.ambient_light_energy = 0.8
+	env.ambient_light_energy = 0.55
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_env.environment = env
 	add_child(world_env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, -28, 0)
-	sun.light_energy = 1.35
+	sun.light_energy = 1.05
 	sun.shadow_enabled = true
 	add_child(sun)
 
 func _build_terrain() -> void:
 	_box(self, "Ground_2km", Vector3(MAP_SIZE, 3, MAP_SIZE), Vector3(0,-1.5,0), _mat(Color(0.19,0.30,0.22)), true)
-	_box(self, "Urban_Base", Vector3(1420,1.2,1420), Vector3(0,0.15,0), _mat(Color(0.43,0.45,0.43)), true)
+	_box(self, "Urban_Base", Vector3(1420,1.2,1420), Vector3(0,0.15,0), _mat(Color(0.29,0.31,0.32),0.96), true)
 	var water := _mat(Color(0.055,0.23,0.34),0.24,0.12)
 	_box(self,"North_Water",Vector3(2000,0.6,290),Vector3(0,-0.4,-855),water)
 	_box(self,"South_Water",Vector3(2000,0.6,290),Vector3(0,-0.4,855),water)
@@ -71,7 +71,7 @@ func _build_terrain() -> void:
 
 func _build_roads() -> void:
 	var road := _mat(Color(0.075,0.085,0.095))
-	var line := _mat(Color(0.88,0.78,0.45),0.6)
+	var line := _mat(Color(0.96,0.77,0.32),0.6)
 	var sidewalk := _mat(Color(0.52,0.52,0.49))
 	for x in [-510.0,-170.0,170.0,510.0]:
 		_box(self,"Road_NS",Vector3(24,0.18,1420),Vector3(x,0.85,0),road)
