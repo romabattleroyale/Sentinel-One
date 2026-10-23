@@ -349,7 +349,7 @@ func _build_biomes() -> void:
 	lake.name = "Lago_Azzurro"
 	lake.mesh = lake_mesh
 	lake.scale = Vector3(1.0,1.0,0.76)
-	lake.position = Vector3(-250,0.14,-455)
+	lake.position = Vector3(-220,0.14,-610)
 	lake.material_override = lake_mat
 	add_child(lake)
 	# Curved river down the middle-to-east corridor, with short overlapping segments.
@@ -428,7 +428,7 @@ func _build_nature() -> void:
 		var x := rng.randf_range(-445.0,175.0)
 		var z := rng.randf_range(-865.0,-515.0)
 		var mountain_clearance := Vector2(x,z).distance_to(Vector2(-620,-690))
-		var lake_clearance := Vector2(x,z).distance_to(Vector2(-250,-455))
+		var lake_clearance := Vector2(x,z).distance_to(Vector2(-220,-610))
 		if mountain_clearance > 165.0 and lake_clearance > 150.0 and not _is_urban_block(x,z):
 			_tree(self,Vector3(x,0.09,z),rng.randf_range(0.55,1.0))
 	# Dense shadow forest. Tree clusters are deterministic to keep the island layout stable.
@@ -576,12 +576,12 @@ func _build_district_details() -> void:
 func _build_roads() -> void:
 	var road := _mat(Color(0.075,0.085,0.095))
 	var line := _mat(Color(0.96,0.77,0.32),0.6)
-	var sidewalk := _mat(Color(0.52,0.52,0.49))
+	var sidewalk := _mat(Color(0.34,0.35,0.33))
 	for x in [-595.0,-425.0,-255.0,-85.0,85.0,255.0,425.0,595.0]:
-		_box(self,"Road_NS",Vector3(24,0.18,1420),Vector3(x,0.16,0),road)
-		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x-15,0.21,0),sidewalk)
-		_box(self,"Sidewalk",Vector3(5,0.25,1420),Vector3(x+15,0.21,0),sidewalk)
-		for z in range(-680,681,48):
+		_box(self,"Road_NS",Vector3(24,0.18,1250),Vector3(x,0.16,0),road)
+		_box(self,"Sidewalk",Vector3(2.6,0.22,1250),Vector3(x-13.3,0.20,0),sidewalk)
+		_box(self,"Sidewalk",Vector3(2.6,0.22,1250),Vector3(x+13.3,0.20,0),sidewalk)
+		for z in range(-600,601,48):
 			_box(self,"LaneDash",Vector3(0.35,0.22,18),Vector3(x,0.27,z),line)
 	for z in [-595.0,-425.0,-255.0,-85.0,85.0,255.0,425.0,595.0]:
 		_box(self,"Road_EW",Vector3(1420,0.18,24),Vector3(0,0.16,z),road)
@@ -612,8 +612,8 @@ func _build_country_roads() -> void:
 	var routes := [
 		[Vector2(-595,-425),Vector2(-640,-610)],
 		[Vector2(-640,-610),Vector2(-720,-760)],
-		[Vector2(-255,-425),Vector2(-225,-455)],
-		[Vector2(-225,-455),Vector2(-440,-540)],
+		[Vector2(-255,-425),Vector2(-240,-505)],
+		[Vector2(-240,-505),Vector2(-220,-610)],
 		[Vector2(255,-425),Vector2(330,-575)],
 		[Vector2(330,-575),Vector2(700,-650)],
 		[Vector2(-595,255),Vector2(-665,190)],
@@ -710,7 +710,7 @@ func _build_map_overlay_labels() -> void:
 	canvas.add_child(scale_label)
 	var labels := [
 		["MONTE NEVOSO",-645,-710],
-		["LAGO AZZURRO",-250,-455],
+		["LAGO AZZURRO",-220,-610],
 		["BOSCO OMBRA",315,-430],
 		["ISOLE DEL RELITTO",820,-660],
 		["PORTO",-865,60],
