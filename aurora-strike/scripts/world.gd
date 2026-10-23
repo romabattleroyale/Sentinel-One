@@ -585,8 +585,8 @@ func _build_roads() -> void:
 			_box(self,"LaneDash",Vector3(0.35,0.22,18),Vector3(x,0.27,z),line)
 	for z in [-595.0,-425.0,-255.0,-85.0,85.0,255.0,425.0,595.0]:
 		_box(self,"Road_EW",Vector3(1420,0.18,24),Vector3(0,0.16,z),road)
-		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.21,z-15),sidewalk)
-		_box(self,"Sidewalk",Vector3(1420,0.25,5),Vector3(0,0.21,z+15),sidewalk)
+		_box(self,"Sidewalk",Vector3(1420,0.22,2.6),Vector3(0,0.20,z-13.3),sidewalk)
+		_box(self,"Sidewalk",Vector3(1420,0.22,2.6),Vector3(0,0.20,z+13.3),sidewalk)
 		for x in range(-680,681,48):
 			_box(self,"LaneDash",Vector3(18,0.22,0.35),Vector3(x,0.27,z),line)
 
@@ -613,7 +613,7 @@ func _build_country_roads() -> void:
 		[Vector2(-595,-425),Vector2(-640,-610)],
 		[Vector2(-640,-610),Vector2(-720,-760)],
 		[Vector2(-255,-425),Vector2(-240,-505)],
-		[Vector2(-240,-505),Vector2(-220,-610)],
+		[Vector2(-330,-610),Vector2(-440,-650)],
 		[Vector2(255,-425),Vector2(330,-575)],
 		[Vector2(330,-575),Vector2(700,-650)],
 		[Vector2(-595,255),Vector2(-665,190)],
