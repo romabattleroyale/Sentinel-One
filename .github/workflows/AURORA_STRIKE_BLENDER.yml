@@ -1,0 +1,40 @@
+name: AURORA STRIKE Blender map generator validation
+
+on:
+  push:
+    branches: [aurora-strike-current]
+    paths:
+      - 'aurora-strike/tools/blender/**'
+      - '.github/workflows/AURORA_STRIKE_BLENDER.yml'
+  workflow_dispatch:
+
+jobs:
+  blender-generator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Blender and export validation tools
+        run: sudo apt-get update && sudo apt-get install -y blender
+      - name: Validate Python syntax
+        run: python3 -m py_compile aurora-strike/tools/blender/aurora_map_gen.py
+      - name: Generate test island and assets
+        env:
+          AURORA_OUTPUT_DIR: ${{ github.workspace }}/aurora-blender-test-output
+        run: blender --background --python aurora-strike/tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
+      - name: Check key output files
+        run: |
+          test -s aurora-blender-test-output/AURORA_STRIKE_Map_Source.blend
+          test -s aurora-blender-test-output/manifest.csv
+          test -s aurora-blender-test-output/preview/aurora_strike_overview.png
+          test -s aurora-blender-test-output/AURORA_STRIKE_Master_Preview.glb
+          test "$(find aurora-blender-test-output/tiles -maxdepth 1 -name '*.glb' | wc -l)" -eq 64
+          test "$(find aurora-blender-test-output/poi -maxdepth 1 -name '*.glb' | wc -l)" -eq 16
+      - name: Upload Blender map outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-strike-blender-generated-map
+          path: aurora-blender-test-output/
+          retention-days: 14
