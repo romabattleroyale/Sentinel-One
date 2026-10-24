@@ -237,13 +237,22 @@ def make_poi(poi,root):
 
 # --- exporter / entry point ---
 def create_overview(root):
- scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.02,.07,.15,1)
- bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=2.0;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
+ scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.20,.31,.42,1);world.node_tree.nodes["Background"].inputs["Strength"].default_value=.75
+ bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=4.0;sun.data.use_shadow=True;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
  bpy.ops.object.camera_add(location=(0,2600,0),rotation=(math.radians(-90),0,0));cam=bpy.context.object;cam.name="AS_Overview_Camera";cam.data.type="ORTHO";cam.data.ortho_scale=2250;cam.data.clip_start=.1;cam.data.clip_end=10000;scene.camera=cam;relink(cam,root)
  try: scene.render.engine="BLENDER_EEVEE_NEXT"
  except: scene.render.engine="BLENDER_EEVEE"
  scene.render.resolution_x=1600;scene.render.resolution_y=1600;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
- try:scene.view_settings.view_transform="AgX"
+ try:
+  scene.view_settings.view_transform="AgX"
+  scene.view_settings.look="AgX - Medium High Contrast"
+  scene.view_settings.exposure=.6
+  scene.view_settings.gamma=1.0
+ except:pass
+ try:
+  scene.render.image_settings.color_mode="RGBA"
+  scene.render.film_transparent=False
+  scene.eevee.taa_render_samples=64
  except:pass
  return cam
 def glb_export(objects,path):
@@ -300,15 +309,32 @@ def main():
  for idx,poi in enumerate(POIS,1):log("Building POI %d/16: %s"%(idx,poi[1]));poi_cols.append((poi,make_poi(poi,pc)))
  # Batch trees by biome to reduce object count.
  veg=collection("Vegetation_Batches",root)
- for name,cx,cz,count,ma in [("Bosco_Ombra",227,-703,220,M["forest"]),("Colline_Verdi",-594,39,110,M["hill"])]:
+ for name,cx,cz,count,ma in [("Bosco_Ombra",227,-703,760,M["forest"]),("Colline_Verdi",-594,39,360,M["hill"])]:
   v=[];f=[];mi=[]
   for k in range(count):
-   x=cx+random.uniform(-180,180);z=cz+random.uniform(-135,135)
+   x=cx+random.uniform(-190,190);z=cz+random.uniform(-145,145)
    if not inside(x,z):continue
-   y=height(x,z);r=random.uniform(2.5,5);h=random.uniform(8,17);base=len(v)
-   v.extend([(x-r*.2,y,z),(x+r*.2,y,z),(x+r*.13,y+h*.5,z),(x-r*.13,y+h*.5,z),(x-r,y+h*.45,z),(x+r,y+h*.45,z),(x,y+h,z)])
-   f.extend([(base,base+1,base+2,base+3),(base+4,base+5,base+6)]);mi.extend([0,1])
-  mesh(name+"_TreeBatch",v,f,veg,[M["wood"],ma],mi)
+   y=height(x,z);r=random.uniform(3.0,6.2);h=random.uniform(9,19);base=len(v)
+   # Low-poly trunk prism.
+   v.extend([(x-r*.17,y,z-r*.17),(x+r*.17,y,z-r*.17),(x+r*.17,y,z+r*.17),(x-r*.17,y,z+r*.17),
+             (x-r*.10,y+h*.43,z-r*.10),(x+r*.10,y+h*.43,z-r*.10),(x+r*.10,y+h*.43,z+r*.10),(x-r*.10,y+h*.43,z+r*.10)])
+   f.extend([(base,base+3,base+2,base+1),(base+4,base+5,base+6,base+7),
+             (base,base+1,base+5,base+4),(base+1,base+2,base+6,base+5),
+             (base+2,base+3,base+7,base+6),(base+3,base,base+4,base+7)])
+   mi.extend([0]*6)
+   # Three stacked, triangulated foliage crowns; one mesh per biome keeps object count low.
+   for tier in range(3):
+    ring_base=len(v); base_y=y+h*(.30+tier*.20); radius=r*(1.05-tier*.20); peak_y=y+h*(.76+tier*.12)
+    for side in range(7):
+     ang=2*math.pi*side/7
+     v.append((x+radius*math.cos(ang),base_y,z+radius*math.sin(ang)))
+    tip=len(v);v.append((x,peak_y,z))
+    for side in range(7):
+     f.append((ring_base+side,ring_base+(side+1)%7,tip));mi.append(1)
+     if tier==0:
+      f.append((base+4,ring_base+side,ring_base+(side+1)%7));mi.append(1)
+  tree=mesh(name+"_TreeBatch",v,f,veg,[M["wood"],ma],mi)
+  for poly in tree.data.polygons: poly.use_smooth=False
  camera=create_overview(root)
  source=OUT/"AURORA_STRIKE_Map_Source.blend";bpy.ops.wm.save_as_mainfile(filepath=str(source));log("Saved editable Blender source")
  rows=[];tile_paths=export_tiles(terrain,OUT,rows)
