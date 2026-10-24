@@ -87,7 +87,7 @@ def height(x,z):
  h+=8*gauss(x,z,31,523,230,240)
  for cx,cz,sx,sz,amp in [(-550,-745,105,115,130),(-490,-680,90,130,100),(-630,-655,100,125,90),(-435,-755,65,80,65),(-655,-555,75,85,60)]: h+=amp*gauss(x,z,cx,cz,sx,sz)
  # Small ridge-scale variation breaks up the smooth Gaussian dome without changing POI anchors.
- h+=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*5.0*smooth(55,135,h)
+ h+=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*8.0*smooth(55,135,h)
  lake=math.sqrt(((x+94)/150)**2+((z+633)/112)**2);h-=20*(1-smooth(.8,1.2,lake))
  rx=130+125*math.sin((z+100)*.0035)+70*math.sin(z*.01);h-=8*(1-smooth(18,54,abs(x-rx)))
  city=gauss(x,z,-297,-250,310,185)+gauss(x,z,195,-242,220,120);h=h*(1-min(.72,city*.6))+8*min(.72,city*.6)
@@ -123,6 +123,28 @@ def mesh(name,verts,faces,c,mats,indices=None,colors=None):
    m=mats[0];m.use_nodes=True;bs=m.node_tree.nodes.get("Principled BSDF");n=m.node_tree.nodes.new("ShaderNodeVertexColor");n.layer_name="BiomeColor";m.node_tree.links.new(n.outputs["Color"],bs.inputs["Base Color"])
   except Exception as e:log("Vertex color fallback: "+str(e))
  return o
+def faceted_peak(name,x,z,base_y,radius,h,c,phase=0.0):
+ segments=9
+ verts=[];faces=[];indices=[]
+ ring_specs=[(1.0,0.0,0.0,0.0),(.62,.52,.055*radius*math.cos(phase),.055*radius*math.sin(phase)),(.28,.84,.13*radius*math.cos(phase+0.8),.13*radius*math.sin(phase+0.8))]
+ for ring_id,(radius_factor,height_factor,ox,oz) in enumerate(ring_specs):
+  for i in range(segments):
+   a=2*math.pi*i/segments+ring_id*.035
+   variation=.84+.16*(.5+.5*math.sin(i*2.1+phase+ring_id*.8))
+   rr=radius*radius_factor*variation
+   y_jitter=0.0 if ring_id==0 else h*.025*math.sin(i*2.6+phase+ring_id)
+   verts.append((x+ox+rr*math.cos(a),base_y+h*height_factor+y_jitter,z+oz+rr*math.sin(a)))
+ apex=len(verts)
+ verts.append((x+radius*.08*math.cos(phase+1.4),base_y+h,z+radius*.08*math.sin(phase+1.4)))
+ for i in range(segments):
+  nxt=(i+1)%segments
+  lo=i;lon=nxt;mid=segments+i;midn=segments+nxt;up=segments*2+i;upn=segments*2+nxt
+  faces.extend([(lo,mid,lon),(lon,mid,midn),(mid,up,midn),(midn,up,upn),(up,apex,upn)])
+  indices.extend([0,0,0,0,1 if i in (0,1,2,7,8) else 0])
+ obj=mesh(name,verts,faces,c,[M["rock"],M["snow"]],indices)
+ for poly in obj.data.polygons: poly.use_smooth=False
+ return obj
+
 def make_terrain(c):
  log("Generating dense island terrain")
  verts=[];colors=[];lookup={};faces=[];steps=int(SIZE/STEP)+1
@@ -154,10 +176,8 @@ def build_water(c):
  # Two continuous concentric bands: warm sand on the inner strip, turquoise shallows on the outer strip.
  # Avoid alternating material on adjacent triangles, which made a jagged checkerboard coastline.
  for x,z in COAST:
-  ix,iz=x*.965,z*.965
-  ox,oz=x*1.035,z*1.035
-  # Track the real terrain along the inner shore and coast line; blend down to sea level offshore.
-  v.extend([(ix,height(ix,iz)+.28,iz),(x,height(x,z)+.08,z),(ox,-.15,oz)])
+  # Keep the beach and shallow-water bands near sea level; the denser 5m land mesh reduces stair-stepping.
+  v.extend([(x*.965,6.4,z*.965),(x,2.8,z),(x*1.035,-.15,z*1.035)])
  for i in range(len(COAST)):
   n=(i+1)%len(COAST);a=i*3;b=n*3
   f.extend([(a,b,a+1),(a+1,b,b+1)]);idx.extend([1,1])
@@ -196,10 +216,9 @@ def make_poi(poi,root):
  def b(n,dx,dy,dz,sx,sy,sz,ma,bev=0):return cube(label+"_"+n,(x+dx,y+dy,z+dz),(sx,sy,sz),ma,c,bev)
  def cn(n,dx,dy,dz,r,h,ma,seg=9,r2=0):return cone(label+"_"+n,(x+dx,y+dy,z+dz),r,h,ma,c,seg,r2)
  if kind=="snow":
-  for i,(dx,dz,r,h) in enumerate([(-90,-35,48,112),(-20,-50,58,158),(52,25,40,92),(95,-65,32,70),(-45,60,30,78)]):
+  for i,(dx,dz,r,h) in enumerate([(-90,-35,40,55),(-20,-50,50,86),(52,25,34,54),(95,-65,26,43),(-45,60,28,46)]):
    base_y=height(x+dx,z+dz)
-   cn("RockPeak"+str(i),dx,base_y-y+h/2,dz,r,h,M["rock"],10,r*.06)
-   cn("SnowCap"+str(i),dx,base_y-y+h*.82,dz,r*.24,h*.24,M["snow"],10,r*.025)
+   faceted_peak(label+"_AlpinePeak_"+str(i),x+dx,z+dz,base_y,r,h,c,float(i)*1.7)
  elif kind in ("forest","hills"):
   for i in range(110 if kind=="forest" else 65):
    dx=random.uniform(-150,150);dz=random.uniform(-120,120);r=random.uniform(2.5,6);h=random.uniform(7,16)
