@@ -297,7 +297,7 @@ def export_tiles(terrain,outdir,rows):
    tile=mesh(name,tv,tf,col,[M["deep"] if tile_type=="water_tile" else M["grass"]],colors=cols)
    tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0;tile["kind"]=tile_type
    path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
-   rows.append([tile_type,name,str(path),i,j,x0,z0,x1,z1,"procedural original; 12.5m grid; estimated heights; verify transform once in Godot"])
+   rows.append([tile_type,name,str(path.relative_to(OUT)),i,j,x0,z0,x1,z1,"procedural original; 12.5m grid; estimated heights; verify transform once in Godot"])
    bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col)
    log(name+" exported")
  return paths
@@ -353,7 +353,7 @@ def main():
   for d in dups:
    data=d.data;bpy.data.objects.remove(d,do_unlink=True)
    if data and data.users==0 and isinstance(data,bpy.types.Mesh):bpy.data.meshes.remove(data)
-  rows.append(["poi_module",pid,str(path),"","",x,z,x,z,"procedural original; estimated concept coordinates"])
+  rows.append(["poi_module",pid,str(path.relative_to(OUT)),"","",x,z,x,z,"procedural original; estimated concept coordinates"])
  # Manifest is persisted before render; a graphics-driver failure must not lose the inventory.
  manifest=OUT/"manifest.csv"
  with open(manifest,"w",newline="",encoding="utf-8") as f:
