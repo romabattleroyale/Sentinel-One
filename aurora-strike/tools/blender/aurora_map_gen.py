@@ -93,7 +93,13 @@ def height(x,z):
  h+=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*8.0*smooth(55,135,h)
  lake=math.sqrt(((x+94)/150)**2+((z+633)/112)**2);h-=20*(1-smooth(.8,1.2,lake))
  rx=river_center_x(z);h-=8*(1-smooth(18,54,abs(x-rx)))
- city=gauss(x,z,-297,-250,310,185)+gauss(x,z,195,-242,220,120);h=h*(1-min(.72,city*.6))+8*min(.72,city*.6)
+ city=gauss(x,z,-297,-250,310,185)+gauss(x,z,195,-242,220,120)+gauss(x,z,703,-375,250,190)
+ h=h*(1-min(.72,city*.6))+8*min(.72,city*.6)
+ # Mid-scale erosion/ridge detail: stronger in natural biomes, damped beneath the urban plateaus.
+ relief_mask=(1.0-min(.88,city*.72))*smooth(5,30,h)
+ h+=(1.65*math.sin(x*.083+1.2*math.sin(z*.047))
+     +1.05*math.sin(z*.137-x*.061)
+     +.65*math.sin(x*.225+z*.193)*math.sin(z*.171))*relief_mask
  return max(1.8,min(420,h))
 def terrain_color(x,z,h):
  c=(.24,.39,.16)
@@ -221,6 +227,31 @@ def paths_between(c):
    for i in range(num):
     t=i/num;pts.append((a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t))
   pts.append(path[-1]);ribbon("Road_%02d"%j,pts,14 if j==0 else 9,.55,M["asphalt"],c)
+
+ # Dashes follow the actual road polylines and terrain height instead of floating as a straight decal.
+ mark_v=[];mark_f=[]
+ for road_index,path in enumerate(roads):
+  dash_counter=0
+  for a,b in zip(path,path[1:]):
+   dx,dz=b[0]-a[0],b[1]-a[1];length=math.hypot(dx,dz)
+   if length<12:continue
+   ux,uz=dx/length,dz/length;nx,nz=-uz,ux
+   n=max(1,int(length/18.0))
+   for step_idx in range(1,n,2):
+    t=min(.96,(step_idx*18.0+4.0)/length)
+    px=a[0]+dx*t;pz=a[1]+dz*t
+    py=height(px,pz)+.82
+    half_len=min(3.2,(length*.25));half_w=.24
+    base=len(mark_v)
+    mark_v.extend([
+     (px-ux*half_len+nx*half_w,py,pz-uz*half_len+nz*half_w),
+     (px-ux*half_len-nx*half_w,py,pz-uz*half_len-nz*half_w),
+     (px+ux*half_len-nx*half_w,py,pz+uz*half_len-nz*half_w),
+     (px+ux*half_len+nx*half_w,py,pz+uz*half_len+nz*half_w)
+    ])
+    mark_f.append((base,base+1,base+2,base+3))
+    dash_counter+=1
+ if mark_f:mesh("Road_Centre_Dashed_Markings",mark_v,mark_f,c,[M["yellow"]])
 
  # Find the actual road/river polyline intersections instead of placing bridges at unrelated coordinates.
  def intersect(a,b,d,e):
@@ -400,12 +431,33 @@ def main():
  for idx,poi in enumerate(POIS,1):log("Building POI %d/16: %s"%(idx,poi[1]));poi_cols.append((poi,make_poi(poi,pc)))
  # Batch trees by biome to reduce object count.
  veg=collection("Vegetation_Batches",root)
- for name,cx,cz,count,ma in [("Bosco_Ombra",227,-703,760,M["forest"]),("Colline_Verdi",-594,39,360,M["hill"])]:
+ for name,cx,cz,count,ma in [
+  ("Bosco_Ombra",227,-703,2300,M["forest"]),
+  ("Colline_Verdi",-594,39,1150,M["hill"]),
+  ("Bosco_Ripariale",-155,70,760,M["forest"]),
+  ("Bosco_Sudoccidentale",-610,445,900,M["forest"]),
+  ("Macchia_Centrale",-315,115,520,M["hill"])
+ ]:
   v=[];f=[];mi=[]
   for k in range(count):
    x=cx+random.uniform(-190,190);z=cz+random.uniform(-145,145)
    if not inside(x,z):continue
-   y=height(x,z);r=random.uniform(3.0,6.2);h=random.uniform(9,19);base=len(v)
+   # Keep canopy out of the lake, riverbed, station aprons and compact urban POIs.
+   lake_metric=((x+94)/157.0)**2+((z+633)/120.0)**2
+   if lake_metric<1.08:continue
+   if abs(x-river_center_x(z))<30.0:continue
+   urban=max(
+    gauss(x,z,-297,-250,145,105),
+    gauss(x,z,195,-242,125,90),
+    gauss(x,z,703,-375,150,120),
+    gauss(x,z,31,70,100,90),
+    gauss(x,z,406,78,130,110),
+    gauss(x,z,-766,-250,90,100)
+   )
+   if urban>0.42:continue
+   y=height(x,z)
+   if y>125.0 and name not in ("Colline_Verdi",):continue
+   r=random.uniform(2.8,6.4);h=random.uniform(8.5,20.5);base=len(v)
    # Low-poly trunk prism.
    v.extend([(x-r*.17,y,z-r*.17),(x+r*.17,y,z-r*.17),(x+r*.17,y,z+r*.17),(x-r*.17,y,z+r*.17),
              (x-r*.10,y+h*.43,z-r*.10),(x+r*.10,y+h*.43,z-r*.10),(x+r*.10,y+h*.43,z+r*.10),(x-r*.10,y+h*.43,z+r*.10)])
@@ -414,16 +466,19 @@ def main():
              (base+2,base+3,base+7,base+6),(base+3,base,base+4,base+7)])
    mi.extend([0]*6)
    # Three stacked, triangulated foliage crowns; one mesh per biome keeps object count low.
+   side_count=5+(k%5)
+   crown_shape=(.78,.98,1.12,1.0,.86)[k%5]
    for tier in range(3):
-    ring_base=len(v); base_y=y+h*(.30+tier*.20); radius=r*(1.05-tier*.20); peak_y=y+h*(.76+tier*.12)
-    for side in range(7):
-     ang=2*math.pi*side/7
-     v.append((x+radius*math.cos(ang),base_y,z+radius*math.sin(ang)))
-    tip=len(v);v.append((x,peak_y,z))
-    for side in range(7):
-     f.append((ring_base+side,ring_base+(side+1)%7,tip));mi.append(1)
+    ring_base=len(v); base_y=y+h*(.28+tier*.205); radius=r*crown_shape*(1.08-tier*.19); peak_y=y+h*(.72+tier*.13)
+    for side in range(side_count):
+     ang=2*math.pi*side/side_count + (k%7)*.17 + tier*.035
+     local_radius=radius*(.88+.12*math.sin(side*2.31+k*.37))
+     v.append((x+local_radius*math.cos(ang),base_y,z+local_radius*math.sin(ang)))
+    tip=len(v);v.append((x+math.sin(k*.13)*r*.08,peak_y,z+math.cos(k*.17)*r*.08))
+    for side in range(side_count):
+     f.append((ring_base+side,ring_base+(side+1)%side_count,tip));mi.append(1)
      if tier==0:
-      f.append((base+4,ring_base+side,ring_base+(side+1)%7));mi.append(1)
+      f.append((base+4,ring_base+side,ring_base+(side+1)%side_count));mi.append(1)
   tree=mesh(name+"_TreeBatch",v,f,veg,[M["wood"],ma],mi)
   for poly in tree.data.polygons: poly.use_smooth=False
  camera=create_overview(root)
@@ -449,7 +504,7 @@ def main():
  try:
   log("Exporting master preview GLB")
   # The runtime replaces these low-detail blockouts with existing detailed Godot scenes.
-  detailed_poi_prefixes=("Città Centrale_","Stazione Termini_","Centro Commerciale_","Zona Industriale_")
+  detailed_poi_prefixes=("Città Centrale_","Stazione Termini_","Centro Commerciale_","Zona Industriale_","Quartiere Residenziale_")
   master_objects=[o for o in bpy.context.scene.objects
                   if o.type in {"MESH","CURVE"} and not o.name.startswith(detailed_poi_prefixes)]
   glb_export(master_objects,OUT/"AURORA_STRIKE_Master_Preview.glb")
