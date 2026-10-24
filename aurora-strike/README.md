@@ -4,7 +4,7 @@ Progetto Godot 4.5.1+, GDScript, renderer Mobile, pensato per Android e iOS. La 
 
 ## Build attuale
 - Costa irregolare con oceano profondo, fascia di bassi fondali turchesi e spiagge con colori legati ai biomi.
-- Terreno generato con griglia densa e colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso.
+- Terreno generato con campionamento a 5 m e colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso; la griglia più fitta riduce le sagome a gradini senza spostare gli ancoraggi POI.
 - Lago Azzurro e corso d'acqua turchese, alberature aggiuntive nel bosco settentrionale e rilievi secondari nelle zone verdi e desertiche.
 - Rete stradale, marciapiedi più sottili, collegamenti verso porto, montagna, riviera, base militare, cava e deserto.
 - Città più densa con lotti allineati alla viabilità e 27 scene archetipiche romane già presenti nel repository, con materiali e texture importati.
@@ -41,7 +41,7 @@ AURORA_OUTPUT_DIR=/path/to/output blender --background --python tools/blender/au
 Expected outputs:
 - `AURORA_STRIKE_Map_Source.blend`: editable Blender source scene.
 - `AURORA_STRIKE_Master_Preview.glb`: full scene used by the Godot prototype when present.
-- `tiles/Tile_X00_Z00.glb ... Tile_X07_Z07.glb`: 64 terrain tile exports. Each tile stores its terrain mesh in tile-local X/Z coordinates and records `world_origin_x/world_origin_z` attributes. Place each tile at that world origin in Godot.
+- `tiles/Tile_X00_Z00.glb ... Tile_X07_Z07.glb`: 64 terrain tile exports. Each tile stores its terrain mesh in tile-local X/Z coordinates on a 5 m lattice and records `world_origin_x/world_origin_z` attributes; shared-edge samples are generated from the same global coordinates to minimize seams. Place each tile at that world origin in Godot.
 - `poi/*.glb`: 16 modular POI exports, centered around their listed anchor.
 - `preview/aurora_strike_overview.png`: overhead rendered preview.
 - `manifest.csv`: tile origins, world bounds, POI anchors and procedural provenance.
