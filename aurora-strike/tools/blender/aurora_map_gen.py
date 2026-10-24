@@ -10,7 +10,7 @@ from mathutils import Vector
 OUT = Path(os.environ.get("AURORA_OUTPUT_DIR", str(Path(__file__).resolve().parent / "generated")))
 SEED = 271023
 SIZE, TILE, N = 2000.0, 250.0, 8
-STEP = 20.0
+STEP = 10.0
 random.seed(SEED)
 POIS = [
 ("01_Monte_Nevoso","Monte Nevoso",-531,-719,"snow"),
@@ -29,7 +29,19 @@ POIS = [
 ("14_Base_Militare","Base Militare",-367,422,"military"),
 ("15_Cava_Desolata","Cava Desolata",31,523,"quarry"),
 ("16_Deserto_Rosso","Deserto Rosso",641,438,"desert")]
-COAST=[(-420,-965),(-625,-910),(-790,-790),(-855,-620),(-950,-430),(-930,-265),(-855,-95),(-900,105),(-930,300),(-850,495),(-790,650),(-660,820),(-510,930),(-320,967),(-155,922),(25,955),(210,920),(390,952),(575,905),(745,805),(875,655),(950,465),(910,290),(952,105),(900,-95),(930,-290),(850,-495),(720,-690),(575,-835),(400,-925),(220,-885),(35,-930),(-150,-875),(-300,-925)]
+COAST_CONTROL=[(-420,-965),(-625,-910),(-790,-790),(-855,-620),(-950,-430),(-930,-265),(-855,-95),(-900,105),(-930,300),(-850,495),(-790,650),(-660,820),(-510,930),(-320,967),(-155,922),(25,955),(210,920),(390,952),(575,905),(745,805),(875,655),(950,465),(910,290),(952,105),(900,-95),(930,-290),(850,-495),(720,-690),(575,-835),(400,-925),(220,-885),(35,-930),(-150,-875),(-300,-925)]
+def smooth_coastline(points, subdivisions=4):
+ out=[]
+ for i,p1 in enumerate(points):
+  p0=points[(i-1)%len(points)];p2=points[(i+1)%len(points)];p3=points[(i+2)%len(points)]
+  for k in range(subdivisions):
+   t=k/subdivisions;t2=t*t;t3=t2*t
+   vals=[]
+   for axis in (0,1):
+    vals.append(.5*((2*p1[axis])+(-p0[axis]+p2[axis])*t+(2*p0[axis]-5*p1[axis]+4*p2[axis]-p3[axis])*t2+(-p0[axis]+3*p1[axis]-3*p2[axis]+p3[axis])*t3))
+   out.append((vals[0],vals[1]))
+ return out
+COAST=smooth_coastline(COAST_CONTROL,4)
 def log(s): print("[AURORA %s] %s"%(time.strftime("%H:%M:%S"),s),flush=True)
 def collection(name,parent=None):
  c=bpy.data.collections.new(name); (parent or bpy.context.scene.collection).children.link(c); return c
@@ -137,9 +149,9 @@ def build_water(c):
  mesh("Lago_Azzurro_Water",v,[(0,i+1,(i+1)%n+1) for i in range(n)],c,[M["water"]])
  # Curving outlet river heads south.
  pts=[]
- for j in range(45):
-  z=-535+j*32;x=130+125*math.sin((z+180)*.006)+90*math.sin(z*.011);pts.append((x,z))
- ribbon("River_Shore_Bed",pts,58,.15,M["soil"],c);ribbon("River_Water",pts,43,1,M["water"],c)
+ for j in range(181):
+  z=-535+j*8;x=130+125*math.sin((z+180)*.006)+90*math.sin(z*.011);pts.append((x,z))
+ ribbon("River_Shore_Bed",pts,58,.6,M["sand"],c);ribbon("River_Water",pts,43,4.0,M["water"],c)
 def paths_between(c):
  roads=[
  [(-850,-250),(-700,-250),(-520,-250),(-297,-250),(-50,-245),(195,-242),(450,-290),(703,-375)],
