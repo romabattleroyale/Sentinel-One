@@ -21,7 +21,12 @@
 - Added required runtime-log checks for both bridge collision nodes to the graphical Godot capture workflow.
 - Updated project and Blender README documentation.
 
-### Verification status
-- A previous baseline Blender generator run completed successfully and exported the editable `.blend`, master preview GLB, 64 tile GLBs, 16 POI GLBs, manifest and overview PNG. The baseline graphical Godot workflow also imported the GLB and captured seven real runtime views. Those baseline results do **not** validate the bridge changes in this entry.
-- The modified generator, Godot script and capture workflow have been committed; fresh CI checks for this change are pending.
-- Still required after CI: confirm both bridge collision log entries, review fresh runtime captures, and manually traverse each bridge with the player to check ramp/terrain continuity. Mobile-device performance and final visual fidelity remain unverified.
+### Verification status — CI completed
+- **Blender generator validation passed** in [run 40099995749](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40099995749): Python syntax, full generation, exactly 64 terrain/water tile exports, 16 POI GLBs, manifest, editable `.blend`, master GLB, and overview PNG. The new placement assertions passed for Bridge 00 at approximately (43.4, -243.9) on road 00 and Bridge 01 at approximately (-30.6, 511.5) on road 02.
+- **Godot headless parse/runtime check passed** in [run 40099725480](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40099725480).
+- **Graphical Godot capture passed** in [run 40099937163](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40099937163): Blender generated the master GLB, Godot imported it, the log confirmed the terrain collision and both bridge deck collisions, and seven genuine runtime views were captured. No GDScript parse/runtime errors were reported.
+- The capture workflow now also packages the full Godot project, generated Blender source/assets, and runtime evidence into one ZIP artifact.
+
+### Remaining manual QA
+- The automated run confirms bridge collision creation, but it does not physically drive/walk the player across each bridge. Verify ramp/terrain continuity and collision response in an interactive session.
+- Mobile-device performance, seam/transform checks for all 64 tiles in a streamed scene, and final visual fidelity against the concept remain unverified. Heights and POI anchors are art-direction estimates from the manual, not surveyed measurements.
