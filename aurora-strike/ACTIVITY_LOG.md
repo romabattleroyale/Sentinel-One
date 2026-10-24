@@ -13,14 +13,18 @@
 - Corrected `README.md`: the assembled Blender master uses a 5 m sampling step, the fallback GDScript terrain uses 28 m, and each exported tile uses a 21×21 sample grid (12.5 m spacing). Documented that the 64 tile GLBs are packaged for future streaming but the current runtime still loads the master GLB.
 - No gameplay signals, input actions, scene hierarchy, POI coordinates, or collision-generation logic were changed in this pass.
 
-### Post-change verification
-- The first refined commit passed Godot headless validation (`40101092770`) and the real graphical capture/package (`40101092820`). However, the player screenshot still framed the platform too closely, so this second, evidence-led spawn adjustment must pass a new capture before it is accepted. Blender export emits non-fatal missing-Draco-library messages, but the uncompressed GLBs and PNGs were generated and imported successfully.
+### Post-change verification — passed on commit `2fd56a9543fe466841e015193177c4012fd94f2f`
+- **Godot 4.5.1 headless editor import and short launch passed** in [run 40101597810](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40101597810). This standalone check uses the procedural fallback because the generated master GLB is produced by the graphical pipeline rather than committed as source.
+- **Blender-to-Godot graphical runtime capture and package passed** in [run 40101597860](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40101597860). The actual Godot 4.5.1 runtime log confirms `res://world/generated_blender/AURORA_STRIKE_Master_Preview.glb` loaded, the master terrain collision was created, both `River_Bridge_00` and `River_Bridge_01` deck collisions were created, and all seven view changes completed. No GDScript/runtime errors were reported by the capture check.
+- Inspected the new real player screenshot: the capsule is grounded on open terrain and Stazione Termini is ahead rather than the camera starting beside the platform. This is a camera/spawn framing improvement, not a full traversal test.
+- Verified the generated package contains 64 tile GLBs (62 terrain sectors and 2 sea-only sectors), 16 separate POI GLBs, an 80-row manifest (header plus 64 tile records and 16 POI records), the editable `.blend`, the 12.9 MB master GLB, the overhead PNG, the Godot project, and seven 1280×1280 runtime PNG captures.
+- The latest project bundle is artifact [12562154542](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40101597860/artifacts/12562154542); the standalone seven-view evidence is [12562852021](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40101597860/artifacts/12562852021). GitHub retention is through 7 November 2026.
+- Blender's log still reports that the optional Draco compression library is missing; this is non-fatal in this runner. GLBs are exported uncompressed, imported by Godot, and included in the passing package.
 
 ### Remaining QA
-- After CI, inspect the new player capture to ensure the spawn settles onto terrain and the station is framed usefully.
-- Manually walk the player across both bridges and test slope/shore collisions; CI verifies collision creation, not physical traversal.
-- Tile seams/transforms and runtime streaming are not yet tested because the 64 tile exports are not yet used as separate Godot scenes.
-- Android/iOS performance and final visual fidelity against the concept remain unverified; terrain heights and POI anchors are art-direction estimates, not surveyed data.
+- Manually walk the player across both bridges and test slope/shore collisions, roads, doors and station access; CI verifies collision creation and scene startup, not physical traversal.
+- Tile seams/transforms and runtime streaming are not yet tested because the 64 tile exports are not yet used as separate Godot scenes; the runtime currently loads the assembled master GLB.
+- Android/iOS performance, target-device texture/LOD behavior, and final visual fidelity against the concept remain unverified. The current scene is still a stylized blockout, not photorealistic. Terrain heights and POI anchors are art-direction estimates, not surveyed data.
 
 ---
 
