@@ -77,7 +77,7 @@
 ### Verifiche automatizzate
 - **Blender generator validation — superata**, commit del codice `984342a2bc25c5d771efd5f8f7bb535c59588575`: sintassi Python, generazione della mappa, export GLB e controlli sui tile/POI del workflow. [Run](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113682026)
 - **Godot 4.5.1 headless import e avvio — superati**, medesimo commit. [Run](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113681965)
-- **Cattura grafica Godot e ZIP — in corso al momento di questo aggiornamento**. Non considerare una schermata precedente come prova runtime delle modifiche correnti; aggiungere il riferimento del run finale dopo il completamento. [Run](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113681963)
+- **Cattura grafica Godot e ZIP — superati** sul commit del codice `984342a2bc25c5d771efd5f8f7bb535c59588575`, [run 40113681963](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113681963): Blender ha rigenerato il master GLB, Godot 4.5.1 l'ha importato e avviato, il log conferma la collisione del terreno e dei due ponti, e sono state acquisite sette viste reali 1280×1280 senza errori GDScript/runtime. Artefatto progetto: `aurora-strike-project-bundle`; evidenze runtime: `aurora-strike-runtime-seven-views`. La modifica seguente aggiorna solo questo registro; la pipeline verrà rieseguita sul nuovo commit.
 
 ### Cosa resta da verificare
 - Ispezione visiva delle nuove schermate runtime dopo la generazione della mappa aggiornata.
