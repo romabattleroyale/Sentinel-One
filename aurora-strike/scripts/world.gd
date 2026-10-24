@@ -902,7 +902,7 @@ func _build_blender_map_architecture() -> void:
 	city.name = "Detailed_Citta_Centrale"
 	city.position = Vector3(-297.0, 8.0, -250.0)
 	add_child(city)
-	for i in range(24):
+	for i in range(56):
 		var archetype_id: int = (i * 7 + 3) % 27
 		var archetype_path := "res://baked_city/archetypes_587/archetype_%02d.tscn" % archetype_id
 		var archetype := load(archetype_path) as PackedScene
@@ -913,9 +913,9 @@ func _build_blender_map_architecture() -> void:
 		if detailed == null:
 			continue
 		detailed.name = "Detailed_Roman_Building_%02d" % archetype_id
-		var local_x := float(i % 6) * 36.0 - 90.0
-		var local_z := float(int(i / 6)) * 38.0 - 57.0
-		var scale_factor := 2.6 + float((i * 3) % 8) * 0.1
+		var local_x := float(i % 8) * 30.0 - 105.0
+		var local_z := float(int(i / 8)) * 29.0 - 87.0
+		var scale_factor := 1.95 + float((i * 5) % 6) * 0.055
 		detailed.position = Vector3(local_x, 0.1, local_z)
 		detailed.scale = Vector3.ONE * scale_factor
 		detailed.rotation.y = float(i % 4) * PI * 0.5
