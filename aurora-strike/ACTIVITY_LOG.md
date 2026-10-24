@@ -1,3 +1,29 @@
+## 2026-10-24 — Scene audit, player spawn correction, and pipeline documentation
+
+### Reference and dependency audit before editing
+- Re-read the production manual pages 3, 5, 7–11, and 20–27: coordinate convention (X/Z with Y height), sixteen estimated POI anchors, 8×8 tile layout, estimated altitude bands, coast/water/river/bridge design, road widths, collision/spawn requirements, and multi-angle runtime QA.
+- Inspected `scenes/Main.tscn`, `scripts/world.gd` (all 1,247 lines), `scripts/player.gd`, `project.godot`, `tools/blender/aurora_map_gen.py`, `tools/blender/README.md`, repository instructions, and both Godot workflows.
+- Confirmed `Main.tscn` is a `Node3D` with `res://scripts/world.gd`; `world.gd` dynamically attaches `res://scripts/player.gd`. All 27 referenced city archetype scenes exist. The six player input actions (WASD, jump, sprint) are all defined in `project.godot`; the main scene has no scene-level signal connections, and touch buttons connect to existing controller methods in code.
+- Audited the latest real capture package from commit `8c3a0bb15dcd6e9d1915c8a35d361b1d881c70e2`: the Godot log confirms the generated Blender master GLB loaded, terrain collision was created, both bridge-deck collisions were created, and all seven view switches completed without GDScript/runtime errors.
+- Inspected the seven actual X11 runtime captures. The island/POIs are readable from above, but the current scene remains a stylized blockout, not photorealistic. The player view showed an unhelpful distant horizon and sparse foreground.
+
+### Findings and minimal changes
+- The Blender-map spawn was `(300, 35, -242)`, roughly 26 m above the estimated terrain height at that location. The generator height function gives approximately 8.5 m near the station approach; the old spawn explains the poor first-person/third-person framing and unnecessary fall.
+- Changed only the Blender-map spawn in `scripts/world.gd` to `(210, 8.8, -180)`, near the ground and north of Stazione Termini. The procedural fallback spawn remains unchanged.
+- Corrected `README.md`: the assembled Blender master uses a 5 m sampling step, the fallback GDScript terrain uses 28 m, and each exported tile uses a 21×21 sample grid (12.5 m spacing). Documented that the 64 tile GLBs are packaged for future streaming but the current runtime still loads the master GLB.
+- No gameplay signals, input actions, scene hierarchy, POI coordinates, or collision-generation logic were changed in this pass.
+
+### Post-change verification
+- Static checks and Godot 4.5.1 editor import/headless launch plus fresh graphical captures are triggered by this commit. Their results and the resulting ZIP artifact will be recorded in the next log update; do not treat the spawn correction as verified until those checks finish.
+
+### Remaining QA
+- After CI, inspect the new player capture to ensure the spawn settles onto terrain and the station is framed usefully.
+- Manually walk the player across both bridges and test slope/shore collisions; CI verifies collision creation, not physical traversal.
+- Tile seams/transforms and runtime streaming are not yet tested because the 64 tile exports are not yet used as separate Godot scenes.
+- Android/iOS performance and final visual fidelity against the concept remain unverified; terrain heights and POI anchors are art-direction estimates, not surveyed data.
+
+---
+
 # AURORA STRIKE — Activity Log
 
 ## 2026-10-24 — River channel, bridge alignment, and collision pass
