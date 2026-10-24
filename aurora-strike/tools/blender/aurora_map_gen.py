@@ -227,7 +227,7 @@ def make_poi(poi,root):
 def create_overview(root):
  scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.02,.07,.15,1)
  bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=2.0;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
- bpy.ops.object.camera_add(location=(0,2600,0),rotation=(math.radians(-90),0,0));cam=bpy.context.object;cam.name="AS_Overview_Camera";cam.data.type="ORTHO";cam.data.ortho_scale=2250;scene.camera=cam;relink(cam,root)
+ bpy.ops.object.camera_add(location=(0,2600,0),rotation=(math.radians(-90),0,0));cam=bpy.context.object;cam.name="AS_Overview_Camera";cam.data.type="ORTHO";cam.data.ortho_scale=2250;cam.data.clip_start=.1;cam.data.clip_end=10000;scene.camera=cam;relink(cam,root)
  try: scene.render.engine="BLENDER_EEVEE_NEXT"
  except: scene.render.engine="BLENDER_EEVEE"
  scene.render.resolution_x=1600;scene.render.resolution_y=1600;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
