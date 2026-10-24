@@ -757,28 +757,30 @@ func _build_map_overlay_labels() -> void:
 	scale_label.add_theme_font_size_override("font_size",13)
 	scale_label.add_theme_color_override("font_color",Color(0.97,0.98,1.0))
 	canvas.add_child(scale_label)
+	# Coordinate X/Z tratte dal registro POI del manuale (pagina 5).
+	# Il centro della griglia è (640, 648) px; 1 m = 0,59 px.
 	var labels := [
-		["MONTE NEVOSO",-645,-710],
-		["LAGO AZZURRO",-220,-610],
-		["BOSCO OMBRA",315,-430],
-		["ISOLE DEL RELITTO",820,-660],
-		["PORTO",-865,60],
-		["CITTÀ CENTRALE",-320,15],
-		["STAZIONE TERMINI",20,62],
-		["QUARTIERE RESIDENZIALE",570,-120],
-		["COLLINE VERDI",-545,325],
-		["RIVIERA",-795,520],
-		["BASE MILITARE",-650,655],
-		["ZONA INDUSTRIALE",-130,400],
-		["CENTRO COMMERCIALE",270,410],
-		["ZONA AGRICOLA",650,220],
-		["CAVA DESOLATA",35,690],
-		["DESERTO ROSSO",580,640]
+		["MONTE NEVOSO",-531,-719],
+		["LAGO AZZURRO",-94,-633],
+		["BOSCO OMBRA",227,-703],
+		["ISOLE DEL RELITTO",719,-734],
+		["PORTO",-766,-250],
+		["CITTÀ CENTRALE",-297,-250],
+		["STAZIONE TERMINI",195,-242],
+		["QUARTIERE RESIDENZIALE",703,-375],
+		["COLLINE VERDI",-594,39],
+		["RIVIERA",-766,289],
+		["ZONA INDUSTRIALE",31,70],
+		["CENTRO COMMERCIALE",406,78],
+		["ZONA AGRICOLA",719,78],
+		["BASE MILITARE",-367,422],
+		["CAVA DESOLATA",31,523],
+		["DESERTO ROSSO",641,438]
 	]
 	for item in labels:
 		var label := Label.new()
 		label.text = item[0]
-		label.position = Vector2(640.0+float(item[1])*0.60-122.5,647.0+float(item[2])*0.60-17.0)
+		label.position = Vector2(640.0+float(item[1])*0.59-122.5,648.0+float(item[2])*0.59-17.0)
 		label.size = Vector2(245,34)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -927,6 +929,51 @@ func _build_blender_map_architecture() -> void:
 		var local_x := float(tower_id % 3) * 54.0 - 54.0
 		var local_z := float(int(tower_id / 3)) * 56.0 - 28.0
 		_build_commercial_tower(commercial, tower_id, local_x, local_z)
+
+	# Quartiere residenziale: usa gli archetipi romani già presenti nel progetto,
+	# con distanze regolari per mantenere lotti separati e corridoi stradali leggibili.
+	var residential := Node3D.new()
+	residential.name = "Detailed_Quartiere_Residenziale"
+	residential.position = Vector3(703.0, 8.0, -375.0)
+	add_child(residential)
+	for i in range(36):
+		var archetype_id: int = (i * 11 + 5) % 27
+		var archetype_path := "res://baked_city/archetypes_587/archetype_%02d.tscn" % archetype_id
+		var archetype := load(archetype_path) as PackedScene
+		if archetype == null:
+			push_warning("Missing residential archetype: " + archetype_path)
+			continue
+		var detailed := archetype.instantiate() as Node3D
+		if detailed == null:
+			continue
+		detailed.name = "Residential_Roman_Building_%02d" % archetype_id
+		var local_x := float(i % 6) * 34.0 - 85.0
+		var local_z := float(int(i / 6)) * 34.0 - 85.0
+		var scale_factor := 2.1 + float((i * 5) % 5) * 0.08
+		detailed.position = Vector3(local_x, 0.1, local_z)
+		detailed.scale = Vector3.ONE * scale_factor
+		detailed.rotation.y = float((i * 3) % 4) * PI * 0.5
+		residential.add_child(detailed)
+
+	# Strade locali e marciapiedi bassi tra le file: non attraversano gli edifici.
+	var local_asphalt := _mat(Color(0.105, 0.115, 0.12), 0.9)
+	var local_concrete := _mat(Color(0.47, 0.46, 0.42), 0.94)
+	for street_idx in range(5):
+		var street_z := -68.0 + float(street_idx) * 34.0
+		_box(residential, "Residential_Street_H_%02d" % street_idx,
+			Vector3(220.0, 0.12, 7.0), Vector3(0.0, 0.16, street_z), local_asphalt)
+		_box(residential, "Residential_Sidewalk_H_%02d" % street_idx,
+			Vector3(220.0, 0.18, 1.2), Vector3(0.0, 0.22, street_z - 4.1), local_concrete)
+		_box(residential, "Residential_Sidewalk_H2_%02d" % street_idx,
+			Vector3(220.0, 0.18, 1.2), Vector3(0.0, 0.22, street_z + 4.1), local_concrete)
+	for street_idx in range(5):
+		var street_x := -68.0 + float(street_idx) * 34.0
+		_box(residential, "Residential_Street_V_%02d" % street_idx,
+			Vector3(7.0, 0.12, 220.0), Vector3(street_x, 0.16, 0.0), local_asphalt)
+		_box(residential, "Residential_Sidewalk_V_%02d" % street_idx,
+			Vector3(1.2, 0.18, 220.0), Vector3(street_x - 4.1, 0.22, 0.0), local_concrete)
+		_box(residential, "Residential_Sidewalk_V2_%02d" % street_idx,
+			Vector3(1.2, 0.18, 220.0), Vector3(street_x + 4.1, 0.22, 0.0), local_concrete)
 
 	_build_industrial_complex()
 	_build_landmarks(true)
