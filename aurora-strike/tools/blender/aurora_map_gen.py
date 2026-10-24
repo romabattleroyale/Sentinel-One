@@ -277,7 +277,7 @@ def export_tiles(terrain,outdir,rows):
  # Shared-edge coordinates are computed from each tile origin and the same exact step,
  # so adjacent tiles have matching seam vertices and a substantially cleaner shoreline.
  log("Generating 64 individual terrain tile meshes on a shared 5m lattice")
- tile_segments=50; tile_vertices=tile_segments+1; step=TILE/float(tile_segments)
+ paths=[]; tile_segments=50; tile_vertices=tile_segments+1; step=TILE/float(tile_segments)
  for j in range(N):
   for i in range(N):
    x0=-1000+i*TILE; z0=-1000+j*TILE; x1=x0+TILE; z1=z0+TILE
