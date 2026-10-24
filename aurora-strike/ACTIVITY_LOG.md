@@ -9,12 +9,12 @@
 
 ### Findings and minimal changes
 - The Blender-map spawn was `(300, 35, -242)`, roughly 26 m above the estimated terrain height at that location. The generator height function gives approximately 8.5 m near the station approach; the old spawn explains the poor first-person/third-person framing and unnecessary fall.
-- Changed only the Blender-map spawn in `scripts/world.gd` to `(210, 8.8, -180)`, near the ground and north of Stazione Termini. The procedural fallback spawn remains unchanged.
+- The first correction changed the Blender-map spawn to `(210, 8.8, -180)`; its real runtime screenshot showed the camera too close to the southern station platform. Refined it to `(210, 8.5, -100)`: the generator estimates ~8.17 m ground height there, leaving the player just above the terrain and the camera about 142 m south of the station. The procedural fallback spawn remains unchanged.
 - Corrected `README.md`: the assembled Blender master uses a 5 m sampling step, the fallback GDScript terrain uses 28 m, and each exported tile uses a 21×21 sample grid (12.5 m spacing). Documented that the 64 tile GLBs are packaged for future streaming but the current runtime still loads the master GLB.
 - No gameplay signals, input actions, scene hierarchy, POI coordinates, or collision-generation logic were changed in this pass.
 
 ### Post-change verification
-- Static checks and Godot 4.5.1 editor import/headless launch plus fresh graphical captures are triggered by this commit. Their results and the resulting ZIP artifact will be recorded in the next log update; do not treat the spawn correction as verified until those checks finish.
+- The first refined commit passed Godot headless validation (`40101092770`) and the real graphical capture/package (`40101092820`). However, the player screenshot still framed the platform too closely, so this second, evidence-led spawn adjustment must pass a new capture before it is accepted. Blender export emits non-fatal missing-Draco-library messages, but the uncompressed GLBs and PNGs were generated and imported successfully.
 
 ### Remaining QA
 - After CI, inspect the new player capture to ensure the spawn settles onto terrain and the station is framed usefully.
