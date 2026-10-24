@@ -60,3 +60,26 @@
 ### Remaining manual QA
 - The automated run confirms bridge collision creation, but it does not physically drive/walk the player across each bridge. Verify ramp/terrain continuity and collision response in an interactive session.
 - Mobile-device performance, seam/transform checks for all 64 tiles in a streamed scene, and final visual fidelity against the concept remain unverified. Heights and POI anchors are art-direction estimates from the manual, not surveyed measurements.
+
+
+## 2026-10-24 — Mappa AURORA STRIKE: riallineamento POI e aumento dettaglio procedurale
+
+### Riferimenti e controlli prima della modifica
+- Consultato `Manuale_Esecutivo_Mappa_AuroraStrike_Godot.pdf`, in particolare le convenzioni mondo 2000 × 2000 m (pagine 3 e 7) e il registro dei 16 POI (pagina 5).
+- Ispezionati `scenes/Main.tscn`, `scripts/world.gd`, `scripts/player.gd`, `project.godot` e `tools/blender/aurora_map_gen.py` prima di intervenire.
+- Sono rimasti invariati gli input esistenti e la struttura dei segnali; la modifica Godot è confinata alla costruzione delle etichette di mappa e al distretto residenziale. Le modifiche Blender sono confinate al generatore della mappa.
+
+### Modifiche applicate
+- Corrette le coordinate X/Z di tutte le etichette top-down dei POI secondo la tabella del manuale, usando la scala comune della griglia e il centro immagine.
+- Aggiunti al quartiere residenziale 36 edifici istanziati da archetipi romani già presenti nel progetto, con variazioni di scala e rotazione, più rete locale di carreggiate e marciapiedi. Il blockout residenziale duplicato nel GLB master è escluso per evitare doppioni.
+- Aggiunte variazioni di rilievo a media frequenza, attenuate nelle zone urbane; distribuzione più ampia e variata di alberi con esclusioni per lago, letto del fiume e POI urbani; introdotte strisce centrali stradali che seguono il tracciato e il terreno. La geometria procedurale resta stilizzata: questo non equivale ancora a fotorealismo.
+
+### Verifiche automatizzate
+- **Blender generator validation — superata**, commit del codice `984342a2bc25c5d771efd5f8f7bb535c59588575`: sintassi Python, generazione della mappa, export GLB e controlli sui tile/POI del workflow. [Run](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113682026)
+- **Godot 4.5.1 headless import e avvio — superati**, medesimo commit. [Run](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113681965)
+- **Cattura grafica Godot e ZIP — in corso al momento di questo aggiornamento**. Non considerare una schermata precedente come prova runtime delle modifiche correnti; aggiungere il riferimento del run finale dopo il completamento. [Run](https://github.com/romabattleroyale/Sentinel-One/actions/runs/40113681963)
+
+### Cosa resta da verificare
+- Ispezione visiva delle nuove schermate runtime dopo la generazione della mappa aggiornata.
+- Collisioni e percorribilità a piedi/veicolo di ponti, rive, strade e nuovi edifici; i test automatici controllano parsing, generazione e avvio ma non sostituiscono un playtest interattivo.
+- Verifica di prestazioni su dispositivo Android/iOS, giunzioni di tutti i tile in streaming, materiali PBR e qualità finale contro la tavola concept. La mappa consegnata in questo checkpoint è un avanzamento procedurale, non ancora una ricostruzione fotorealistica completa.
