@@ -10,7 +10,7 @@ from mathutils import Vector
 OUT = Path(os.environ.get("AURORA_OUTPUT_DIR", str(Path(__file__).resolve().parent / "generated")))
 SEED = 271023
 SIZE, TILE, N = 2000.0, 250.0, 8
-STEP = 10.0
+STEP = 5.0  # 5 m terrain sampling: smoother natural silhouettes without changing height/POI anchors.
 random.seed(SEED)
 POIS = [
 ("01_Monte_Nevoso","Monte Nevoso",-531,-719,"snow"),
@@ -41,7 +41,8 @@ def smooth_coastline(points, subdivisions=4):
     vals.append(.5*((2*p1[axis])+(-p0[axis]+p2[axis])*t+(2*p0[axis]-5*p1[axis]+4*p2[axis]-p3[axis])*t2+(-p0[axis]+3*p1[axis]-3*p2[axis]+p3[axis])*t3))
    out.append((vals[0],vals[1]))
  return out
-COAST=smooth_coastline(COAST_CONTROL,4)
+# Dense spline samples reduce visible facets along the coastline while preserving the authored control points.
+COAST=smooth_coastline(COAST_CONTROL,8)
 def log(s): print("[AURORA %s] %s"%(time.strftime("%H:%M:%S"),s),flush=True)
 def collection(name,parent=None):
  c=bpy.data.collections.new(name); (parent or bpy.context.scene.collection).children.link(c); return c
@@ -269,23 +270,24 @@ def glb_export(objects,path):
  bpy.ops.object.select_all(action="DESELECT")
  return path.exists() and path.stat().st_size>64
 def export_tiles(terrain,outdir,rows):
- # Generate each tile directly from the same global height function and 12.5m lattice.
- # 21x21 vertices per tile guarantees the seam vertices use exactly identical X/Z values.
- log("Generating 64 individual terrain tile meshes with shared-edge sample coordinates")
- paths=[]; step=TILE/20.0
+ # Generate each tile from the same global height function on a 5m lattice.
+ # Shared-edge coordinates are computed from each tile origin and the same exact step,
+ # so adjacent tiles have matching seam vertices and a substantially cleaner shoreline.
+ log("Generating 64 individual terrain tile meshes on a shared 5m lattice")
+ tile_segments=50; tile_vertices=tile_segments+1; step=TILE/float(tile_segments)
  for j in range(N):
   for i in range(N):
    x0=-1000+i*TILE; z0=-1000+j*TILE; x1=x0+TILE; z1=z0+TILE
    tv=[]; tf=[]; cols=[]; valid=[]
-   for zz in range(21):
-    for xx in range(21):
+   for zz in range(tile_vertices):
+    for xx in range(tile_vertices):
      wx=x0+xx*step; wz=z0+zz*step; ok=inside(wx,wz)
      valid.append(ok)
      tv.append((wx-x0,height(wx,wz) if ok else 0.0,wz-z0))
      cols.append(terrain_color(wx,wz,height(wx,wz)) if ok else (0.02,0.04,0.06))
-   for zz in range(20):
-    for xx in range(20):
-     a=zz*21+xx; b=a+1; c=a+21; d=c+1
+   for zz in range(tile_segments):
+    for xx in range(tile_segments):
+     a=zz*tile_vertices+xx; b=a+1; c=a+tile_vertices; d=c+1
      if valid[a] and valid[b] and valid[c] and valid[d]:
       tf.extend([(a,c,b),(b,c,d)])
    tile_type="terrain_tile"
@@ -297,7 +299,7 @@ def export_tiles(terrain,outdir,rows):
    tile=mesh(name,tv,tf,col,[M["deep"] if tile_type=="water_tile" else M["grass"]],colors=cols)
    tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0;tile["kind"]=tile_type
    path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
-   rows.append([tile_type,name,str(path.relative_to(OUT)),i,j,x0,z0,x1,z1,"procedural original; 12.5m grid; estimated heights; verify transform once in Godot"])
+   rows.append([tile_type,name,str(path.relative_to(OUT)),i,j,x0,z0,x1,z1,"procedural original; 5m grid; estimated heights; verify transform once in Godot"])
    bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col)
    log(name+" exported")
  return paths
