@@ -42,7 +42,17 @@ def smooth_coastline(points, subdivisions=4):
    out.append((vals[0],vals[1]))
  return out
 # Dense spline samples reduce visible facets along the coastline while preserving the authored control points.
-COAST=smooth_coastline(COAST_CONTROL,8)
+def roughen_coastline(points):
+ out=[]
+ for i,(x,z) in enumerate(points):
+  prev=points[i-1];nxt=points[(i+1)%len(points)]
+  tx,tz=nxt[0]-prev[0],nxt[1]-prev[1]
+  length=math.hypot(tx,tz) or 1.0
+  nx,nz=-tz/length,tx/length
+  wave=5.2*math.sin(i*.83)+2.7*math.sin(i*2.07+.4)+1.4*math.sin(i*.19)
+  out.append((x+nx*wave,z+nz*wave))
+ return out
+COAST=roughen_coastline(smooth_coastline(COAST_CONTROL,8))
 def log(s): print("[AURORA %s] %s"%(time.strftime("%H:%M:%S"),s),flush=True)
 def collection(name,parent=None):
  c=bpy.data.collections.new(name); (parent or bpy.context.scene.collection).children.link(c); return c
@@ -107,6 +117,10 @@ def height(x,z):
  h=h*(1-min(.78,city*.72))+8*min(.78,city*.72)
  relief_mask=(1.0-min(.92,city*.82))*smooth(5,30,h)
  h+=(ridge+erosion+fine)*relief_mask
+ # Cut a proper shallow port basin under the water level, rather than covering intact land with blue.
+ harbor_metric=((x+805.0)/143.0)**2+((z+250.0)/132.0)**2
+ if harbor_metric < 1.0:
+  return -1.2 + .12*math.sin(x*.07+z*.04)
  return max(1.8,min(420,h))
 def terrain_color(x,z,h):
  c=(.24,.39,.16)
@@ -220,6 +234,22 @@ def build_water(c):
   f.extend([(a,b,a+1),(a+1,b,b+1)]);idx.extend([1,1])
   f.extend([(a+1,b+1,a+2),(a+2,b+1,b+2)]);idx.extend([0,0])
  mesh("Turquoise_Shore_Ring",v,f,c,[M["shallow"],M["sand"]],idx)
+ # Thin shoreline foam traces the coastline without a repeated rectangular decal.
+ foam_v=[];foam_f=[]
+ for x,z in COAST:
+  foam_v.extend([(x*.998,1.35,z*.998),(x*1.006,1.18,z*1.006)])
+ for i in range(len(COAST)):
+  a=i*2;b=((i+1)%len(COAST))*2
+  foam_f.extend([(a,b,a+1),(a+1,b,b+1)])
+ mesh("Coastal_Foam_Edge",foam_v,foam_f,c,[M["white"]])
+ # Curved harbour basin follows the west-coast port and leaves a channel to the sea.
+ hx,hz=-805.0,-250.0
+ harbor_outline=[(-145,-82),(-128,-112),(-96,-126),(-60,-119),(-32,-98),(8,-87),(42,-64),(62,-28),(60,12),(39,42),(9,61),(-31,67),(-68,55),(-99,34),(-122,8),(-140,-22)]
+ hv=[(hx,1.48,hz)]
+ for dx,dz in harbor_outline:
+  hv.append((hx+dx,1.48,hz+dz))
+ hf=[(0,i+1,(i+1)%len(harbor_outline)+1) for i in range(len(harbor_outline))]
+ mesh("Porto_Harbor_Basin",hv,hf,c,[M["water"]])
  # Real internal lake surface with irregular shoreline.
  cx,cz=-94,-633;v=[(cx,31,cz)];n=64
  for i in range(n):
@@ -265,7 +295,11 @@ def paths_between(c):
     for axis in (0,1):
      out.append(.5*((2*a[axis])+(-prev[axis]+b[axis])*t+(2*prev[axis]-5*a[axis]+4*b[axis]-nxt[axis])*t2+(-prev[axis]+3*a[axis]-3*b[axis]+nxt[axis])*t3))
     pts.append((out[0],out[1]))
-  pts.append(path[-1]);ribbon("Road_%02d"%j,pts,15 if j==0 else 9.5,.8,M["asphalt"],c)
+  pts.append(path[-1])
+  road_width=15.0 if j==0 else 9.5
+  # Pale concrete shoulders frame the asphalt corridors at map scale.
+  ribbon("Road_Bed_%02d"%j,pts,road_width+3.6,.56,M["concrete"],c)
+  ribbon("Road_%02d"%j,pts,road_width,.92,M["asphalt"],c)
 
  # Dashes follow the actual road polylines and terrain height instead of floating as a straight decal.
  mark_v=[];mark_f=[]
@@ -279,7 +313,7 @@ def paths_between(c):
    for step_idx in range(1,n,2):
     t=min(.96,(step_idx*18.0+4.0)/length)
     px=a[0]+dx*t;pz=a[1]+dz*t
-    py=height(px,pz)+.82
+    py=height(px,pz)+1.02
     half_len=min(3.2,(length*.25));half_w=.24
     base=len(mark_v)
     mark_v.extend([
@@ -344,17 +378,36 @@ def make_poi(poi,root):
   b("Molo",0,2,122,6,.8,62,M["wood"])
   for i in range(8):cube(label+"_DockPlank"+str(i),(x+(-7+i*2),y+2,z+115),(1,.6,9),M["wood"],c)
  elif kind=="islands":
-  for i,(dx,dz,r) in enumerate([(-100,-40,35),(-35,35,46),(28,-55,31),(85,20,39),(115,-5,20)]):cn("Islet"+str(i),dx,3,dz,r,5,M["sand"],9,r*.7)
-  b("WreckHull",-35,10,30,62,12,18,M["rust"],2);b("WreckMast",-22,24,30,2,28,2,M["wood"])
+  islets=[(-132,-72,22,9),(-100,-40,35,14),(-67,-89,18,8),(-35,35,46,19),(2,73,23,10),(28,-55,31,13),(60,-83,17,7),(85,20,39,16),(115,-5,20,8),(138,-44,24,9),(152,45,18,7),(70,74,14,6)]
+  for i,(dx,dz,r,rock_h) in enumerate(islets):
+   cn("Islet_Rock_"+str(i),dx,rock_h*.42,dz,r,rock_h,M["rock"],11,r*.58)
+   cn("Islet_Sand_Shoulder_"+str(i),dx,2.2,dz,r*1.12,3.4,M["sand"],13,r*.75)
+  b("WreckHull",-35,10,30,62,12,18,M["rust"],2)
+  b("WreckDeck",-35,16,30,40,1.2,15,M["metal"],.3)
+  b("WreckMast",-22,24,30,2,28,2,M["wood"])
+  for i in range(4):
+   b("WreckDeckContainer_"+str(i),-50+i*10,18,29,8,5.5,7,[M["rust"],M["red"],M["metal"],M["yellow"]][i],.35)
  elif kind=="port":
-  for i in range(5):
-   zz=-80+i*42;b("Quay"+str(i),-70,3,zz,110,5,22,M["concrete"],.5)
-   for j in range(4):b("Container%d_%d"%(i,j),-90+j*17,8,zz,14,10,12,[M["red"],M["glass"],M["yellow"],M["metal"]][(i+j)%4],.3)
-  for dx in (-105,-50):b("CraneLeg"+str(dx),dx,23,-25,4,40,4,M["yellow"])
-  b("CraneBeam",-78,44,-25,63,4,5,M["yellow"])
+  # Quays, mooring bollards and cranes sit above the carved harbor water.
+  for i in range(6):
+   zz=-92+i*36
+   b("Quay"+str(i),-67,3.05,zz,106,4.5,17,M["concrete"],.7)
+   b("Quay_Edge_Stripe"+str(i),-67,5.35,zz,106,.18,.55,M["white"],.04)
+   for j in range(5):
+    mat=[M["red"],M["glass"],M["yellow"],M["metal"],M["rust"]][(i+j)%5]
+    b("Container%d_%d"%(i,j),-97+j*15.5,7.2,zz,12.5,8.4,10.5,mat,.35)
+   for bollard in range(0,9,2):
+    cn("Mooring_Bollard_%d_%d"%(i,bollard),-123+bollard*14,5.9,zz+9,.48,1.6,M["metal"],8,.42)
+  for dx in (-106,-52):
+   b("CraneLeg"+str(dx),dx,20,-24,4.2,34,4.2,M["yellow"])
+  b("CraneBeam",-79,38,-24,65,4.2,5.0,M["yellow"])
+  for crane_x in (-103,-55):
+   b("Crane_Boom",crane_x,40,-10,2.4,2.4,34,M["yellow"])
+   b("Crane_Hoist",crane_x,31,8,.9,17,.9,M["metal"])
  elif kind=="city":
-  for i in range(42):
-   dx=(i%7)*28-84;dz=(i//7)*31-77;w=random.uniform(17,24);d=random.uniform(18,26);h=random.uniform(14,39)
+  # Dense 8x7 city fabric with roof variation, individual windows and shopfronts.
+  for i in range(56):
+   dx=(i%8)*30-105;dz=(i//8)*29-87;w=random.uniform(18,23);d=random.uniform(18,23);h=random.uniform(13,42)
    base_mat=[M["plaster"],M["brick"],M["concrete"],M["sand"]][i%4]
    b("RomanBuilding"+str(i),dx,h/2,dz,w,h,d,base_mat,.65)
    b("Roof"+str(i),dx,h+.55,dz,w+.7,1.0,d+.7,M["roof"],.2)
@@ -366,6 +419,15 @@ def make_poi(poi,root):
    if i%3==0:
     b("Shopfront_Glazing",dx,2.2,front+.08,w*.66,2.4,.20,M["glass"],.04)
     b("Shop_Awning",dx,3.8,front+.42,w*.72,.45,.8,M["red"] if i%2 else M["yellow"],.08)
+  # The local road grid uses neutral concrete verges and asphalt centres.
+  for road_idx in range(7):
+   street_x=-90+road_idx*30
+   cube("City_Street_V_%02d"%road_idx,(x+street_x,y+.42,z),(5.8,.20,226),M["asphalt"],c,.08)
+   cube("City_Verge_V_%02d"%road_idx,(x+street_x,y+.30,z),(8.2,.16,226),M["concrete"],c,.04)
+  for road_idx in range(6):
+   street_z=-72.5+road_idx*29
+   cube("City_Street_H_%02d"%road_idx,(x,y+.42,z+street_z),(240,.20,5.6),M["asphalt"],c,.08)
+   cube("City_Verge_H_%02d"%road_idx,(x,y+.30,z+street_z),(240,.16,8.0),M["concrete"],c,.04)
  elif kind=="station":
   b("MainHall",0,13,0,145,26,55,M["plaster"],1);b("GlassFront",0,13,28,120,17,1,M["glass"]);b("Roof",0,27,0,154,3,64,M["roof"])
   for pz in (-75,-48,-21,21,48,75):
@@ -505,6 +567,10 @@ def main():
   for k in range(count):
    x=cx+random.uniform(-190,190);z=cz+random.uniform(-145,145)
    if not inside(x,z):continue
+   forest_metric=((x-cx)/190.0)**2+((z-cz)/145.0)**2
+   forest_edge=1.0+.095*math.sin(x*.031+z*.019)+.052*math.sin(z*.073-x*.041)
+   if forest_metric>forest_edge:continue
+   if forest_metric>.74 and random.random()<.23:continue
    # Keep canopy out of the lake, riverbed, station aprons and compact urban POIs.
    lake_metric=((x+94)/157.0)**2+((z+633)/120.0)**2
    if lake_metric<1.08:continue
