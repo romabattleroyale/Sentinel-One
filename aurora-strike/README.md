@@ -47,3 +47,5 @@ Expected outputs:
 - `manifest.csv`: tile origins, world bounds, POI anchors and procedural provenance.
 
 The manual explicitly marks coordinates, widths and altitudes as estimates derived from the illustrated concept, not survey data. Check tile transforms and the preview in Godot before using the tiles for runtime streaming. The CI workflow runs Blender with a software OpenGL/Xvfb environment, then Godot imports the master GLB and captures multiple views.
+
+The terrain river channel and visible river now share the same centerline function. Bridge decks are computed from actual road/river intersections (currently two), aligned to the road tangent, and given static trimesh collision by Godot. The graphical workflow fails if either bridge collision is absent from the runtime log. This verifies collision creation, not yet a manual player traversal or target-phone slope test.
