@@ -949,7 +949,7 @@ func _build_blender_map_architecture() -> void:
 		detailed.name = "Residential_Roman_Building_%02d" % archetype_id
 		var local_x := float(i % 6) * 34.0 - 85.0
 		var local_z := float(int(i / 6)) * 34.0 - 85.0
-		var scale_factor := 2.1 + float((i * 5) % 5) * 0.08
+		var scale_factor := 2.1 + float((i * 3) % 5) * 0.08
 		detailed.position = Vector3(local_x, 0.1, local_z)
 		detailed.scale = Vector3.ONE * scale_factor
 		detailed.rotation.y = float((i * 3) % 4) * PI * 0.5
