@@ -118,7 +118,9 @@ def height(x,z):
  relief_mask=(1.0-min(.92,city*.82))*smooth(5,30,h)
  h+=(ridge+erosion+fine)*relief_mask
  # Cut a proper shallow port basin under the water level, rather than covering intact land with blue.
- harbor_metric=((x+805.0)/143.0)**2+((z+250.0)/132.0)**2
+ harbor_dx=x+805.0
+ harbor_dx_norm=harbor_dx/(145.0 if harbor_dx<0 else 62.0)
+ harbor_metric=harbor_dx_norm**2+((z+250.0)/132.0)**2
  if harbor_metric < 1.0:
   return -1.2 + .12*math.sin(x*.07+z*.04)
  return max(1.8,min(420,h))
@@ -250,6 +252,14 @@ def build_water(c):
   hv.append((hx+dx,1.48,hz+dz))
  hf=[(0,i+1,(i+1)%len(harbor_outline)+1) for i in range(len(harbor_outline))]
  mesh("Porto_Harbor_Basin",hv,hf,c,[M["water"]])
+ # Raised port access causeway joins the quay system to dry land across the inner basin.
+ cube("Port_Access_Pier_Deck",(-750.0,3.7,-250.0),(65.0,1.0,14.0),M["concrete"],c,.3)
+ cube("Port_Access_Pier_Asphalt",(-750.0,4.22,-250.0),(58.0,.12,8.4),M["asphalt"],c,.1)
+ for pier_idx in range(5):
+  pier_x=-775.0+float(pier_idx)*12.5
+  cube("Port_Access_Pier_Pylon_%02d"%pier_idx,(pier_x,1.25,-250.0),(1.5,3.8,1.5),M["metal"],c,.1)
+  for side in (-1.0,1.0):
+   cube("Port_Access_Pier_Rail_%02d_%d"%(pier_idx,int(side)),(pier_x,4.85,-250.0+side*6.8),(1.2,1.5,.32),M["metal"],c,.06)
  # Real internal lake surface with irregular shoreline.
  cx,cz=-94,-633;v=[(cx,31,cz)];n=64
  for i in range(n):
@@ -263,7 +273,7 @@ def build_water(c):
 def paths_between(c):
  roads=[
   # Main transport spine through the port, central city, Termini and residential district.
-  [(-850,-250),(-700,-250),(-520,-250),(-390,-250),(-297,-250),(-160,-248),(-50,-245),(80,-243),(195,-242),(320,-252),(450,-290),(565,-330),(703,-375)],
+  [(-720,-250),(-700,-250),(-520,-250),(-390,-250),(-297,-250),(-160,-248),(-50,-245),(80,-243),(195,-242),(320,-252),(450,-290),(565,-330),(703,-375)],
   # West loop through green hills and Riviera, with a branch to the snowy mountain.
   [(-594,39),(-680,85),(-735,160),(-766,289),(-670,280),(-594,210),(-480,135),(-390,40),(-297,-250),(-420,-430),(-486,-555),(-531,-719)],
   # Southern industrial/quarry/military/desert road; original central bridge anchor retained.
@@ -273,7 +283,7 @@ def paths_between(c):
   # Northern route through woodland to the wreck islands.
   [(195,-242),(160,-360),(145,-470),(158,-545),(190,-610),(227,-703),(355,-700),(430,-690),(520,-702),(610,-710),(719,-734)],
   # Secondary west-central connector from port to central city and river corridor.
-  [(-766,-250),(-690,-180),(-600,-130),(-500,-145),(-390,-205),(-297,-250),(-180,-330),(-90,-385),(30,-420),(145,-470)],
+  [(-720,-250),(-690,-180),(-600,-130),(-500,-145),(-390,-205),(-297,-250),(-180,-330),(-90,-385),(30,-420),(145,-470)],
   # Lake-to-forest edge route.
   [(-531,-719),(-445,-665),(-360,-620),(-275,-600),(-190,-625),(-94,-633),(10,-620),(105,-585),(160,-535)],
   # Southern coast route along the outskirts of the military base, quarry and desert.
