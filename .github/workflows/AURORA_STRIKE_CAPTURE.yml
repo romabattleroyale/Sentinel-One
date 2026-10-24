@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install display and Blender tools
-        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool blender python3-numpy libegl1 libgl1-mesa-dri libx11-6 libxi6 libxrender1 libxfixes3 libxkbcommon0
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool blender python3-numpy zip libegl1 libgl1-mesa-dri libx11-6 libxi6 libxrender1 libxfixes3 libxkbcommon0
       - name: Generate island geometry with Blender
         working-directory: aurora-strike
         run: |
@@ -115,4 +115,30 @@ jobs:
         with:
           name: aurora-strike-runtime-seven-views
           path: artifacts/aurora-runtime/
+          retention-days: 14
+      - name: Package complete project, generated Blender assets and runtime evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/aurora-strike-project-bundle
+          mkdir -p /tmp/aurora-strike-project-bundle
+          cp -a aurora-strike /tmp/aurora-strike-project-bundle/aurora-strike
+          rm -rf /tmp/aurora-strike-project-bundle/aurora-strike/.godot
+          if [ -d /tmp/aurora-strike-generated ]; then
+            cp -a /tmp/aurora-strike-generated /tmp/aurora-strike-project-bundle/generated-blender-output
+          fi
+          if [ -d artifacts/aurora-runtime ]; then
+            cp -a artifacts/aurora-runtime /tmp/aurora-strike-project-bundle/runtime-evidence
+          fi
+          mkdir -p artifacts
+          (cd /tmp/aurora-strike-project-bundle && zip -qr "$GITHUB_WORKSPACE/artifacts/aurora-strike-project-bundle.zip" .)
+          test -s artifacts/aurora-strike-project-bundle.zip
+          echo "Project bundle size: $(stat -c%s artifacts/aurora-strike-project-bundle.zip) bytes"
+      - name: Upload complete project ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-strike-project-bundle
+          path: artifacts/aurora-strike-project-bundle.zip
           retention-days: 14
