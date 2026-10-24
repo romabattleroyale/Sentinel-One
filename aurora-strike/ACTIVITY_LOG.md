@@ -106,3 +106,10 @@
 ### Remaining work toward the supplied concept
 - The map still needs asset-level visual production: detailed unique architecture/props at all 16 POIs, credible PBR materials and texture sets, stronger individual coastal/river geometry and foam, vegetation species variation, decals and clutter, and visual iteration against the top-down reference.
 - No claim of photorealism or complete final-map fidelity is made at this stage. Mobile-device performance, all tile seams/streaming transforms, walking/driving on bridges/roads and interactive POI collision checks remain manual QA items.
+
+
+## 2026-10-24 — PBR biome albedo and map surface pass
+
+- Added a deterministic 1024×1024 world-aligned terrain albedo image, world-coordinate UVs, multi-frequency colour variation, blended forest canopies, exposed rock and snow fields, desert strata, farmland rows, and a subtle material bump.
+- The previous revision's Blender export and Godot graphical run succeeded, but this image-texture revision is still awaiting its own Blender generation and graphical runtime capture. Do not treat the prior screenshots as evidence of this new texture pass.
+- Still not final/photoreal: unique architectural assets, PBR texture sets for each POI, mature prop/decals pass, water/foam refinement, in-game streaming/tile seam checks, and mobile performance/playability remain.
