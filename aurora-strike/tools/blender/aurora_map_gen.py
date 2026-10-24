@@ -124,7 +124,10 @@ def make_terrain(c):
  for (ix,iz),a in lookup.items():
   if (ix+1,iz) in lookup and (ix,iz+1) in lookup and (ix+1,iz+1) in lookup:
    b=lookup[(ix+1,iz)];d=lookup[(ix,iz+1)];e=lookup[(ix+1,iz+1)];faces.extend([(a,d,b),(b,d,e)])
- return mesh("Island_Terrain_2000m",verts,faces,c,[M["grass"]],colors=colors)
+ terrain_obj=mesh("Island_Terrain_2000m",verts,faces,c,[M["grass"]],colors=colors)
+ # Smooth vertex normals are essential here: without them even a dense 5m grid looks like hard triangular facets.
+ for poly in terrain_obj.data.polygons: poly.use_smooth=True
+ return terrain_obj
 def ribbon(name,points,width,yoff,ma,c):
  verts=[];faces=[]
  for i,(x,z) in enumerate(points):
@@ -297,6 +300,8 @@ def export_tiles(terrain,outdir,rows):
     tf=[(0,2,1),(0,3,2)];cols=None;tile_type="water_tile"
    name="Tile_X%02d_Z%02d"%(i,j);col=collection("Export_"+name)
    tile=mesh(name,tv,tf,col,[M["deep"] if tile_type=="water_tile" else M["grass"]],colors=cols)
+   if tile_type=="terrain_tile":
+    for poly in tile.data.polygons: poly.use_smooth=True
    tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0;tile["kind"]=tile_type
    path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
    rows.append([tile_type,name,str(path.relative_to(OUT)),i,j,x0,z0,x1,z1,"procedural original; 5m grid; estimated heights; verify transform once in Godot"])
