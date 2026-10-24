@@ -33,6 +33,9 @@ jobs:
           test -s aurora-blender-test-output/AURORA_STRIKE_Master_Preview.glb
           test "$(find aurora-blender-test-output/tiles -maxdepth 1 -name '*.glb' | wc -l)" -eq 64
           test "$(find aurora-blender-test-output/poi -maxdepth 1 -name '*.glb' | wc -l)" -eq 16
+          test "$(awk -F, 'NR>1 && ($1=="terrain_tile" || $1=="water_tile") {n++} END {print n+0}' aurora-blender-test-output/manifest.csv)" -eq 64
+          test "$(awk -F, 'NR>1 && $1=="poi_module" {n++} END {print n+0}' aurora-blender-test-output/manifest.csv)" -eq 16
+          if grep -q '/home/runner/' aurora-blender-test-output/manifest.csv; then echo "Manifest must use portable relative paths"; exit 1; fi
       - name: Upload Blender map outputs
         if: always()
         uses: actions/upload-artifact@v4
