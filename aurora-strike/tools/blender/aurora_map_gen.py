@@ -88,18 +88,25 @@ def height(x,z):
  h+=(12+8*math.sin(x*.032)*math.cos(z*.021))*gauss(x,z,227,-703,300,265)
  h+=(20+10*math.sin(x*.032+z*.01))*gauss(x,z,641,438,260,245)
  h+=8*gauss(x,z,31,523,230,240)
- for cx,cz,sx,sz,amp in [(-550,-745,105,115,130),(-490,-680,90,130,100),(-630,-655,100,125,90),(-435,-755,65,80,65),(-655,-555,75,85,60)]: h+=amp*gauss(x,z,cx,cz,sx,sz)
- # Small ridge-scale variation breaks up the smooth Gaussian dome without changing POI anchors.
- h+=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*8.0*smooth(55,135,h)
+ # Overlapping asymmetric ridges form a single mountain mass with secondary spurs.
+ for cx,cz,sx,sz,amp in [(-550,-745,105,115,130),(-490,-680,90,130,100),(-630,-655,100,125,90),(-435,-755,65,80,65),(-655,-555,75,85,60),(-755,-745,72,108,72),(-570,-825,92,66,74),(-455,-650,60,94,62),(-700,-820,65,60,48)]:
+  h+=amp*gauss(x,z,cx,cz,sx,sz)
+ ridge=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*8.0*smooth(55,135,h)
+ erosion=(math.sin(x*.083+1.2*math.sin(z*.047))*1.65+math.sin(z*.137-x*.061)*1.05+math.sin(x*.225+z*.193)*math.sin(z*.171)*.65)
+ fine=(math.sin(x*.31+math.sin(z*.15))*math.cos(z*.27-x*.09))*.34
  lake=math.sqrt(((x+94)/150)**2+((z+633)/112)**2);h-=20*(1-smooth(.8,1.2,lake))
  rx=river_center_x(z);h-=8*(1-smooth(18,54,abs(x-rx)))
- city=gauss(x,z,-297,-250,310,185)+gauss(x,z,195,-242,220,120)+gauss(x,z,703,-375,250,190)
- h=h*(1-min(.72,city*.6))+8*min(.72,city*.6)
- # Mid-scale erosion/ridge detail: stronger in natural biomes, damped beneath the urban plateaus.
- relief_mask=(1.0-min(.88,city*.72))*smooth(5,30,h)
- h+=(1.65*math.sin(x*.083+1.2*math.sin(z*.047))
-     +1.05*math.sin(z*.137-x*.061)
-     +.65*math.sin(x*.225+z*.193)*math.sin(z*.171))*relief_mask
+ # Quarry bowl with raised bench; mesa relief in the south-east desert.
+ qdist=math.sqrt(((x-31)/210)**2+((z-523)/180)**2)
+ if qdist<1.25:
+  h-=18*(1-smooth(.35,.95,qdist))
+  h+=7*smooth(.70,1.05,qdist)*(1-smooth(1.02,1.22,qdist))
+ dd=math.sqrt(((x-641)/285)**2+((z-438)/240)**2)
+ h+=18*(1-smooth(.55,1.05,dd))*(.55+.45*math.sin(x*.045+z*.023))
+ city=max(gauss(x,z,-297,-250,310,185),gauss(x,z,195,-242,220,120),gauss(x,z,703,-375,250,190),gauss(x,z,31,70,180,145),gauss(x,z,406,78,185,150))
+ h=h*(1-min(.78,city*.72))+8*min(.78,city*.72)
+ relief_mask=(1.0-min(.92,city*.82))*smooth(5,30,h)
+ h+=(ridge+erosion+fine)*relief_mask
  return max(1.8,min(420,h))
 def terrain_color(x,z,h):
  c=(.24,.39,.16)
@@ -196,8 +203,18 @@ def build_water(c):
  # Two continuous concentric bands: warm sand on the inner strip, turquoise shallows on the outer strip.
  # Avoid alternating material on adjacent triangles, which made a jagged checkerboard coastline.
  for x,z in COAST:
-  # Keep the beach and shallow-water bands near sea level; the denser 5m land mesh reduces stair-stepping.
-  v.extend([(x*.965,6.4,z*.965),(x,2.8,z),(x*1.035,-.15,z*1.035)])
+  # Biome-specific coast bands: sandy bays, north-west cliffs and ochre southern coves.
+  if x < -700 and z < 80:
+   inner_y=3.8;shore_y=1.6
+  elif z < -560 and x < -250:
+   inner_y=11.0;shore_y=3.6
+  elif x > 500 and z > 260:
+   inner_y=5.4;shore_y=2.0
+  elif z > 650:
+   inner_y=3.2;shore_y=1.1
+  else:
+   inner_y=4.7+.7*math.sin(x*.025+z*.013);shore_y=1.8+.4*math.cos(x*.021-z*.017)
+  v.extend([(x*.965,inner_y,z*.965),(x,shore_y,z),(x*1.035,-.15,z*1.035)])
  for i in range(len(COAST)):
   n=(i+1)%len(COAST);a=i*3;b=n*3
   f.extend([(a,b,a+1),(a+1,b,b+1)]);idx.extend([1,1])
@@ -215,18 +232,40 @@ def build_water(c):
  ribbon("River_Shore_Bed",pts,58,.6,M["sand"],c);ribbon("River_Water",pts,43,4.0,M["water"],c)
 def paths_between(c):
  roads=[
- [(-850,-250),(-700,-250),(-520,-250),(-297,-250),(-50,-245),(195,-242),(450,-290),(703,-375)],
- [(-594,39),(-680,85),(-735,160),(-766,289),(-670,280),(-594,210),(-450,70),(-297,-250),(-420,-430),(-531,-719)],
- [(31,70),(40,170),(10,260),(-95,335),(-225,390),(-367,422),(-200,480),(31,523),(330,480),(641,438)],
- [(406,78),(530,78),(719,78),(760,0),(760,-170),(703,-375)],
- [(195,-242),(160,-360),(145,-470),(190,-560),(227,-703),(430,-690),(610,-710),(719,-734)]]
+  # Main transport spine through the port, central city, Termini and residential district.
+  [(-850,-250),(-700,-250),(-520,-250),(-390,-250),(-297,-250),(-160,-248),(-50,-245),(80,-243),(195,-242),(320,-252),(450,-290),(565,-330),(703,-375)],
+  # West loop through green hills and Riviera, with a branch to the snowy mountain.
+  [(-594,39),(-680,85),(-735,160),(-766,289),(-670,280),(-594,210),(-480,135),(-390,40),(-297,-250),(-420,-430),(-486,-555),(-531,-719)],
+  # Southern industrial/quarry/military/desert road; original central bridge anchor retained.
+  [(31,70),(40,170),(10,260),(-95,335),(-225,390),(-367,422),(-290,458),(-200,480),(-30,511),(31,523),(170,505),(330,480),(485,460),(641,438)],
+  # Commercial, farming and residential connections.
+  [(406,78),(530,78),(719,78),(760,0),(760,-170),(703,-280),(703,-375)],
+  # Northern route through woodland to the wreck islands.
+  [(195,-242),(160,-360),(145,-470),(158,-545),(190,-610),(227,-703),(355,-700),(430,-690),(520,-702),(610,-710),(719,-734)],
+  # Secondary west-central connector from port to central city and river corridor.
+  [(-766,-250),(-690,-180),(-600,-130),(-500,-145),(-390,-205),(-297,-250),(-180,-330),(-90,-385),(30,-420),(145,-470)],
+  # Lake-to-forest edge route.
+  [(-531,-719),(-445,-665),(-360,-620),(-275,-600),(-190,-625),(-94,-633),(10,-620),(105,-585),(160,-535)],
+  # Southern coast route along the outskirts of the military base, quarry and desert.
+  [(-766,289),(-755,395),(-690,500),(-610,585),(-500,650),(-367,690),(-225,710),(-90,720),(31,710),(190,690),(350,680),(500,670),(641,640)],
+  # Civic ring and east-side arterial.
+  [(-420,-95),(-340,-125),(-260,-120),(-190,-95),(-125,-80),(-65,-95),(0,-125),(75,-150),(140,-170),(195,-242),(270,-185),(350,-155),(420,-125),(500,-100),(575,-90),(650,-85)],
+  [(31,70),(145,80),(250,80),(406,78),(530,150),(610,235),(700,320),(770,410)],
+  # Military perimeter road.
+  [(-367,422),(-455,435),(-545,440),(-630,425),(-710,410),(-766,360)],
+  # Quarry access loop around the rim, rather than across the extraction floor.
+  [(-200,480),(-120,520),(-70,570),(0,600),(85,615),(165,600),(230,560),(300,520),(330,480)]]
  for j,path in enumerate(roads):
   pts=[]
-  for a,b in zip(path,path[1:]):
-   dist=math.hypot(b[0]-a[0],b[1]-a[1]);num=max(2,int(dist/18))
-   for i in range(num):
-    t=i/num;pts.append((a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t))
-  pts.append(path[-1]);ribbon("Road_%02d"%j,pts,14 if j==0 else 9,.55,M["asphalt"],c)
+  for seg_idx,(a,b) in enumerate(zip(path,path[1:])):
+   prev=path[max(0,seg_idx-1)];nxt=path[min(len(path)-1,seg_idx+2)]
+   dist=math.hypot(b[0]-a[0],b[1]-a[1]);num=max(3,int(dist/10))
+   for sample_idx in range(num):
+    t=sample_idx/num;t2=t*t;t3=t2*t;out=[]
+    for axis in (0,1):
+     out.append(.5*((2*a[axis])+(-prev[axis]+b[axis])*t+(2*prev[axis]-5*a[axis]+4*b[axis]-nxt[axis])*t2+(-prev[axis]+3*a[axis]-3*b[axis]+nxt[axis])*t3))
+    pts.append((out[0],out[1]))
+  pts.append(path[-1]);ribbon("Road_%02d"%j,pts,15 if j==0 else 9.5,.8,M["asphalt"],c)
 
  # Dashes follow the actual road polylines and terrain height instead of floating as a straight decal.
  mark_v=[];mark_f=[]
@@ -314,10 +353,19 @@ def make_poi(poi,root):
   for dx in (-105,-50):b("CraneLeg"+str(dx),dx,23,-25,4,40,4,M["yellow"])
   b("CraneBeam",-78,44,-25,63,4,5,M["yellow"])
  elif kind=="city":
-  for i in range(24):
-   dx=(i%6)*36-90;dz=(i//6)*38-57;w=random.uniform(22,31);d=random.uniform(23,32);h=random.uniform(18,45)
-   b("RomanBuilding"+str(i),dx,h/2,dz,w,h,d,[M["plaster"],M["brick"],M["concrete"]][i%3],.5)
-   b("Roof"+str(i),dx,h+1,dz,w+1,1.5,d+1,M["roof"])
+  for i in range(42):
+   dx=(i%7)*28-84;dz=(i//7)*31-77;w=random.uniform(17,24);d=random.uniform(18,26);h=random.uniform(14,39)
+   base_mat=[M["plaster"],M["brick"],M["concrete"],M["sand"]][i%4]
+   b("RomanBuilding"+str(i),dx,h/2,dz,w,h,d,base_mat,.65)
+   b("Roof"+str(i),dx,h+.55,dz,w+.7,1.0,d+.7,M["roof"],.2)
+   front=dz+d/2+.08
+   for floor in range(1,max(2,int(h/4.2))):
+    wy=2.0+floor*3.8
+    for col in (-.30,0,.30):
+     b("Facade_Window",dx+col*w,wy,front,w*.17,1.4,.18,M["glass"],.04)
+   if i%3==0:
+    b("Shopfront_Glazing",dx,2.2,front+.08,w*.66,2.4,.20,M["glass"],.04)
+    b("Shop_Awning",dx,3.8,front+.42,w*.72,.45,.8,M["red"] if i%2 else M["yellow"],.08)
  elif kind=="station":
   b("MainHall",0,13,0,145,26,55,M["plaster"],1);b("GlassFront",0,13,28,120,17,1,M["glass"]);b("Roof",0,27,0,154,3,64,M["roof"])
   for pz in (-75,-48,-21,21,48,75):
@@ -325,7 +373,15 @@ def make_poi(poi,root):
    for tx in range(-80,81,8):b("Rail",tx,2,pz-2,8,.4,.4,M["metal"])
  elif kind=="residential":
   for i in range(30):
-   dx=(i%6)*28-70;dz=(i//6)*32-80;h=random.choice([7,9,12,16]);b("House"+str(i),dx,h/2,dz,19,h,19,[M["plaster"],M["brick"],M["sand"]][i%3],.4);b("Roof"+str(i),dx,h+.7,dz,21,1.4,21,M["roof"])
+   dx=(i%6)*25-62.5;dz=(i//6)*29-58;h=random.choice([7,9,12,16,18]);w=random.uniform(15,20);d=random.uniform(16,21)
+   base_mat=[M["plaster"],M["brick"],M["sand"]][i%3]
+   b("House"+str(i),dx,h/2,dz,w,h,d,base_mat,.45)
+   b("Roof"+str(i),dx,h+.55,dz,w+.8,1.1,d+.8,M["roof"],.15)
+   for floor in range(1,max(2,int(h/3.8))):
+    for side in (-1,1):
+     b("Window",dx+side*w*.25,1.9+floor*3.4,dz+d/2+.11,w*.16,1.15,.18,M["glass"],.035)
+   if i%5==0:
+    b("Balcony",dx,h*.63,dz+d/2+.5,w*.56,.22,.75,M["metal"],.04)
  elif kind=="industry":
   b("FactoryHall",0,10,0,135,20,86,M["metal"],.7);b("FactoryRoof",0,21,0,140,3,92,M["roof"])
   for i in range(7):cn("Tank"+str(i),-70+i*23,10,58,8,20,M["metal"],16,8)
@@ -362,6 +418,12 @@ def create_overview(root):
  try: scene.render.engine="BLENDER_EEVEE_NEXT"
  except: scene.render.engine="BLENDER_EEVEE"
  scene.render.resolution_x=1600;scene.render.resolution_y=1600;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
+ try:
+  scene.eevee.taa_render_samples=96
+  scene.eevee.use_gtao=True
+  scene.eevee.gtao_distance=18.0
+  scene.eevee.gtao_factor=1.28
+ except: pass
  try:
   scene.view_settings.view_transform="AgX"
   scene.view_settings.look="AgX - Medium High Contrast"
@@ -432,11 +494,12 @@ def main():
  # Batch trees by biome to reduce object count.
  veg=collection("Vegetation_Batches",root)
  for name,cx,cz,count,ma in [
-  ("Bosco_Ombra",227,-703,2300,M["forest"]),
-  ("Colline_Verdi",-594,39,1150,M["hill"]),
-  ("Bosco_Ripariale",-155,70,760,M["forest"]),
-  ("Bosco_Sudoccidentale",-610,445,900,M["forest"]),
-  ("Macchia_Centrale",-315,115,520,M["hill"])
+  ("Bosco_Ombra",227,-703,3000,M["forest"]),
+  ("Colline_Verdi",-594,39,1450,M["hill"]),
+  ("Bosco_Ripariale",-155,70,980,M["forest"]),
+  ("Bosco_Sudoccidentale",-610,445,1150,M["forest"]),
+  ("Macchia_Centrale",-315,115,700,M["hill"]),
+  ("Bosco_Lago_Nord",-240,-475,420,M["forest"])
  ]:
   v=[];f=[];mi=[]
   for k in range(count):
@@ -456,7 +519,7 @@ def main():
    )
    if urban>0.42:continue
    y=height(x,z)
-   if y>125.0 and name not in ("Colline_Verdi",):continue
+   if y>125.0 and name not in ("Colline_Verdi","Bosco_Lago_Nord"):continue
    r=random.uniform(2.8,6.4);h=random.uniform(8.5,20.5);base=len(v)
    # Low-poly trunk prism.
    v.extend([(x-r*.17,y,z-r*.17),(x+r*.17,y,z-r*.17),(x+r*.17,y,z+r*.17),(x-r*.17,y,z+r*.17),
