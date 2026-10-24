@@ -297,9 +297,9 @@ def paths_between(c):
     pts.append((out[0],out[1]))
   pts.append(path[-1])
   road_width=15.0 if j==0 else 9.5
-  # Pale concrete shoulders frame the asphalt corridors at map scale.
-  ribbon("Road_Bed_%02d"%j,pts,road_width+3.6,.56,M["concrete"],c)
-  ribbon("Road_%02d"%j,pts,road_width,.92,M["asphalt"],c)
+  # Pale concrete shoulders sit just above the terrain; the asphalt crown is only slightly higher.
+  ribbon("Road_Bed_%02d"%j,pts,road_width+3.6,.22,M["concrete"],c)
+  ribbon("Road_%02d"%j,pts,road_width,.38,M["asphalt"],c)
 
  # Dashes follow the actual road polylines and terrain height instead of floating as a straight decal.
  mark_v=[];mark_f=[]
@@ -313,7 +313,7 @@ def paths_between(c):
    for step_idx in range(1,n,2):
     t=min(.96,(step_idx*18.0+4.0)/length)
     px=a[0]+dx*t;pz=a[1]+dz*t
-    py=height(px,pz)+1.02
+    py=height(px,pz)+.46
     half_len=min(3.2,(length*.25));half_w=.24
     base=len(mark_v)
     mark_v.extend([
