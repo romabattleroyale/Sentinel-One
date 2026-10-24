@@ -191,8 +191,8 @@ def _urban_mask(x,z,cx,cz,rx,rz):
  return math.exp(-.5*(((x-cx)/rx)**2+((z-cz)/rz)**2))
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
- # 1024² world-aligned texture: terrain keeps real geometry but has a painted landscape read from above.
- resolution=1024
+ # 512² world-aligned texture: terrain keeps real geometry but has a painted landscape read from above.
+ resolution=512
  image=bpy.data.images.new("AURORA_STRIKE_Biome_Albedo",width=resolution,height=resolution,alpha=True,float_buffer=False)
  pixels=[]
  for py in range(resolution):
