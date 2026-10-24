@@ -27,3 +27,23 @@ Questa è una build giocabile in evoluzione, non ancora una replica fotorealisti
 The offline authoring pipeline is in `tools/blender/`. Run `aurora_map_gen.py` in Blender 3.6+ or 4.x to generate the estimated 2000 × 2000 m island, tile GLBs, modular POI GLBs, editable Blender source, overview PNG and CSV manifest. The generator follows the coordinate convention and sixteen approximate POI anchors from pages 3 and 5 of the production manual. Page 8 altitude bands and all intermediate terrain boundaries are art-direction estimates.
 
 When `world/generated_blender/AURORA_STRIKE_Master_Preview.glb` is present, Godot loads it and adds a static terrain collision mesh; if the file is absent, Godot retains the existing procedural fallback. The graphical runtime workflow builds the Blender master first and then captures multiple camera views from Godot.
+
+## Blender map source pipeline
+
+The executable generator is `tools/blender/aurora_map_gen.py`. It uses Blender's built-in `bpy` API and standard Python only. It follows the approximate X/Z POI anchors from the map manual, builds an island/terrain, coastal water, road links, rivers and bridges, with differentiated scene geometry for all 16 regions.
+
+Run with Blender 3.6+:
+
+```bash
+AURORA_OUTPUT_DIR=/path/to/output blender --background --python tools/blender/aurora_map_gen.py
+```
+
+Expected outputs:
+- `AURORA_STRIKE_Map_Source.blend`: editable Blender source scene.
+- `AURORA_STRIKE_Master_Preview.glb`: full scene used by the Godot prototype when present.
+- `tiles/Tile_X00_Z00.glb ... Tile_X07_Z07.glb`: 64 terrain tile exports. Each tile stores its terrain mesh in tile-local X/Z coordinates and records `world_origin_x/world_origin_z` attributes. Place each tile at that world origin in Godot.
+- `poi/*.glb`: 16 modular POI exports, centered around their listed anchor.
+- `preview/aurora_strike_overview.png`: overhead rendered preview.
+- `manifest.csv`: tile origins, world bounds, POI anchors and procedural provenance.
+
+The manual explicitly marks coordinates, widths and altitudes as estimates derived from the illustrated concept, not survey data. Check tile transforms and the preview in Godot before using the tiles for runtime streaming. The CI workflow runs Blender with a software OpenGL/Xvfb environment, then Godot imports the master GLB and captures multiple views.
