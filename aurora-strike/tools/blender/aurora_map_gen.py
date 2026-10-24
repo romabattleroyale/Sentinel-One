@@ -85,7 +85,9 @@ def height(x,z):
  h+=(12+8*math.sin(x*.032)*math.cos(z*.021))*gauss(x,z,227,-703,300,265)
  h+=(20+10*math.sin(x*.032+z*.01))*gauss(x,z,641,438,260,245)
  h+=8*gauss(x,z,31,523,230,240)
- for cx,cz,sx,sz,amp in [(-575,-770,125,130,260),(-510,-705,110,155,225),(-650,-680,115,155,180),(-445,-780,75,95,145),(-690,-575,85,100,115)]: h+=amp*gauss(x,z,cx,cz,sx,sz)
+ for cx,cz,sx,sz,amp in [(-550,-745,105,115,130),(-490,-680,90,130,100),(-630,-655,100,125,90),(-435,-755,65,80,65),(-655,-555,75,85,60)]: h+=amp*gauss(x,z,cx,cz,sx,sz)
+ # Small ridge-scale variation breaks up the smooth Gaussian dome without changing POI anchors.
+ h+=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*5.0*smooth(55,135,h)
  lake=math.sqrt(((x+94)/150)**2+((z+633)/112)**2);h-=20*(1-smooth(.8,1.2,lake))
  rx=130+125*math.sin((z+100)*.0035)+70*math.sin(z*.01);h-=8*(1-smooth(18,54,abs(x-rx)))
  city=gauss(x,z,-297,-250,310,185)+gauss(x,z,195,-242,220,120);h=h*(1-min(.72,city*.6))+8*min(.72,city*.6)
@@ -95,11 +97,19 @@ def terrain_color(x,z,h):
  regions=[(-594,39,300,250,(.36,.5,.22)),(227,-703,315,280,(.08,.22,.1)),(-531,-719,220,190,(.49,.53,.56)),(31,523,265,235,(.65,.51,.31)),(641,438,280,250,(.64,.25,.13)),(719,78,230,200,(.42,.42,.18)),(31,70,220,190,(.34,.35,.3))]
  for cx,cz,sx,sz,t in regions:
   w=smooth(.1,.9,gauss(x,z,cx,cz,sx,sz));c=tuple(c[i]*(1-w)+t[i]*w for i in range(3))
+ if h>90:
+  rock_band=smooth(90,160,h)*(1-smooth(195,245,h))
+  exposed=.5+.5*math.sin(x*.041+1.5*math.sin(z*.023)+2.0*math.sin(x*.007+z*.012))
+  rock_mix=rock_band*smooth(.53,.89,exposed)*.62
+  c=tuple(c[i]*(1-rock_mix)+(.25,.28,.30)[i]*rock_mix for i in range(3))
  if h>110:
-  w=smooth(110,220,h);c=tuple(c[i]*(1-w)+(.38,.4,.42)[i]*w for i in range(3))
- if h>220:
-  w=smooth(220,340,h);c=tuple(c[i]*(1-w)+(.91,.95,.98)[i]*w for i in range(3))
- n=.93+.07*math.sin(x*.038+z*.021)*math.sin(z*.044-x*.015)
+  w=smooth(110,215,h);c=tuple(c[i]*(1-w)+(.36,.38,.40)[i]*w for i in range(3))
+ if h>195:
+  w=smooth(195,275,h)
+  snow_var=.94+.035*math.sin(x*.06+z*.025)*math.cos(z*.08-x*.02)
+  snow=(snow_var*.94,snow_var*.97,min(1.0,snow_var*1.015))
+  c=tuple(c[i]*(1-w)+snow[i]*w for i in range(3))
+ n=.94+.06*math.sin(x*.038+z*.021)*math.sin(z*.044-x*.015)
  return tuple(max(0,min(1,v*n)) for v in c)
 def mesh(name,verts,faces,c,mats,indices=None,colors=None):
  me=bpy.data.meshes.new(name+"_Mesh");me.from_pydata(verts,[],faces);me.update();o=bpy.data.objects.new(name,me);c.objects.link(o)
@@ -144,7 +154,10 @@ def build_water(c):
  # Two continuous concentric bands: warm sand on the inner strip, turquoise shallows on the outer strip.
  # Avoid alternating material on adjacent triangles, which made a jagged checkerboard coastline.
  for x,z in COAST:
-  v.extend([(x*.965,6.4,z*.965),(x,2.8,z),(x*1.035,-.15,z*1.035)])
+  ix,iz=x*.965,z*.965
+  ox,oz=x*1.035,z*1.035
+  # Track the real terrain along the inner shore and coast line; blend down to sea level offshore.
+  v.extend([(ix,height(ix,iz)+.28,iz),(x,height(x,z)+.08,z),(ox,-.15,oz)])
  for i in range(len(COAST)):
   n=(i+1)%len(COAST);a=i*3;b=n*3
   f.extend([(a,b,a+1),(a+1,b,b+1)]);idx.extend([1,1])
@@ -183,8 +196,10 @@ def make_poi(poi,root):
  def b(n,dx,dy,dz,sx,sy,sz,ma,bev=0):return cube(label+"_"+n,(x+dx,y+dy,z+dz),(sx,sy,sz),ma,c,bev)
  def cn(n,dx,dy,dz,r,h,ma,seg=9,r2=0):return cone(label+"_"+n,(x+dx,y+dy,z+dz),r,h,ma,c,seg,r2)
  if kind=="snow":
-  for i,(dx,dz,r,h) in enumerate([(-90,-35,65,170),(-20,-50,74,250),(52,25,52,145),(95,-65,42,105),(-45,60,38,115)]):
-   cn("RockPeak"+str(i),dx,h/2,dz,r,h,M["rock"],7,3);cn("SnowCap"+str(i),dx,h*.82,dz,r*.4,h*.32,M["snow"],7,1)
+  for i,(dx,dz,r,h) in enumerate([(-90,-35,48,112),(-20,-50,58,158),(52,25,40,92),(95,-65,32,70),(-45,60,30,78)]):
+   base_y=height(x+dx,z+dz)
+   cn("RockPeak"+str(i),dx,base_y-y+h/2,dz,r,h,M["rock"],10,r*.06)
+   cn("SnowCap"+str(i),dx,base_y-y+h*.82,dz,r*.24,h*.24,M["snow"],10,r*.025)
  elif kind in ("forest","hills"):
   for i in range(110 if kind=="forest" else 65):
    dx=random.uniform(-150,150);dz=random.uniform(-120,120);r=random.uniform(2.5,6);h=random.uniform(7,16)
@@ -368,7 +383,11 @@ def main():
  log("Manifest written: %d assets"%len(rows))
  try:
   log("Exporting master preview GLB")
-  glb_export([o for o in bpy.context.scene.objects if o.type in {"MESH","CURVE"}],OUT/"AURORA_STRIKE_Master_Preview.glb")
+  # The runtime replaces these low-detail blockouts with existing detailed Godot scenes.
+  detailed_poi_prefixes=("Città Centrale_","Stazione Termini_","Centro Commerciale_")
+  master_objects=[o for o in bpy.context.scene.objects
+                  if o.type in {"MESH","CURVE"} and not o.name.startswith(detailed_poi_prefixes)]
+  glb_export(master_objects,OUT/"AURORA_STRIKE_Master_Preview.glb")
  except Exception as e:log("Master GLB export warning: "+str(e))
  # Render last, after the source, tiles, POIs, master GLB, and manifest have been saved.
  scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")

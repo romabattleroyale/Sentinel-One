@@ -13,6 +13,7 @@ func _ready() -> void:
 	rng.seed = 271023
 	_build_environment()
 	if _try_load_blender_map():
+		_build_blender_map_architecture()
 		_build_player()
 		_build_hud()
 		_apply_capture_view()
@@ -888,12 +889,51 @@ func _build_commercial_tower(parent: Node3D, tower_id: int, x: float, z: float) 
 	if tower_id == 2:
 		_box(parent,"Office_Antenna",Vector3(0.7,12.0,0.7),Vector3(x,h+7.0,z),roof_mat)
 
-func _build_landmarks() -> void:
+func _build_blender_map_architecture() -> void:
+	# Replace the primitive Blender blockouts for the three most visible POIs with existing Godot assets.
+	# All locations remain aligned to the authored 2 km island anchors.
+	var city := Node3D.new()
+	city.name = "Detailed_Citta_Centrale"
+	city.position = Vector3(-297.0, 8.0, -250.0)
+	add_child(city)
+	for i in range(24):
+		var archetype_id: int = (i * 7 + 3) % 27
+		var archetype_path := "res://baked_city/archetypes_587/archetype_%02d.tscn" % archetype_id
+		var archetype := load(archetype_path) as PackedScene
+		if archetype == null:
+			push_warning("Missing detailed city archetype: " + archetype_path)
+			continue
+		var detailed := archetype.instantiate() as Node3D
+		if detailed == null:
+			continue
+		detailed.name = "Detailed_Roman_Building_%02d" % archetype_id
+		var local_x := float(i % 6) * 36.0 - 90.0
+		var local_z := float(int(i / 6)) * 38.0 - 57.0
+		var scale_factor := 2.6 + float((i * 3) % 8) * 0.1
+		detailed.position = Vector3(local_x, 0.1, local_z)
+		detailed.scale = Vector3.ONE * scale_factor
+		detailed.rotation.y = float(i % 4) * PI * 0.5
+		city.add_child(detailed)
+
+	var commercial := Node3D.new()
+	commercial.name = "Detailed_Centro_Commerciale"
+	commercial.position = Vector3(406.0, 12.0, 78.0)
+	add_child(commercial)
+	for tower_id in range(6):
+		var local_x := float(tower_id % 3) * 54.0 - 54.0
+		var local_z := float(int(tower_id / 3)) * 56.0 - 28.0
+		_build_commercial_tower(commercial, tower_id, local_x, local_z)
+
+	_build_landmarks(true)
+
+func _build_landmarks(use_blender_anchor: bool = false) -> void:
 	var stone := _mat(Color(0.69,0.62,0.49))
 	var dark := _mat(Color(0.15,0.18,0.19),0.55,0.2)
 	var red := _mat(Color(0.72,0.19,0.12))
 	var station := Node3D.new()
 	station.name = "Aurora_Central_Station"
+	if use_blender_anchor:
+		station.position = Vector3(195.0, 8.0, -242.0)
 	add_child(station)
 	_box(station,"Station_Main_Hall",Vector3(118,20,48),Vector3(0,10.1,0),stone,true)
 	_box(station,"Station_Glass_Front",Vector3(96,12,0.7),Vector3(0,11.1,24.4),dark)

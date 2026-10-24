@@ -8,7 +8,7 @@ Progetto Godot 4.5.1+, GDScript, renderer Mobile, pensato per Android e iOS. La 
 - Lago Azzurro e corso d'acqua turchese, alberature aggiuntive nel bosco settentrionale e rilievi secondari nelle zone verdi e desertiche.
 - Rete stradale, marciapiedi più sottili, collegamenti verso porto, montagna, riviera, base militare, cava e deserto.
 - Città più densa con lotti allineati alla viabilità e 27 scene archetipiche romane già presenti nel repository, con materiali e texture importati.
-- Stazione Termini con atrio, insegna 3D, pensiline dei binari, piattaforme, rotaie e traverse; porto con moli/container, fabbrica, serbatoi, pista e hangar militari, campi e silos.
+- Stazione Termini allineata al POI Blender con atrio, insegna 3D, pensiline, piattaforme, rotaie e traverse; il centro città usa 24 archetipi romani dettagliati già presenti nel progetto e il centro commerciale usa i sei edifici vetrati runtime. Porto con moli/container, fabbrica, serbatoi, pista e hangar militari, campi e silos.
 - Controller per movimento, salto e corsa; joystick touch, pulsanti per salto/corsa e controllo telecamera su smartphone.
 - Atlante dall'alto con griglia A–J / 1–10, nomi POI, titolo, bussola e scala.
 
@@ -26,7 +26,7 @@ Questa è una build giocabile in evoluzione, non ancora una replica fotorealisti
 
 The offline authoring pipeline is in `tools/blender/`. Run `aurora_map_gen.py` in Blender 3.6+ or 4.x to generate the estimated 2000 × 2000 m island, tile GLBs, modular POI GLBs, editable Blender source, overview PNG and CSV manifest. The generator follows the coordinate convention and sixteen approximate POI anchors from pages 3 and 5 of the production manual. Page 8 altitude bands and all intermediate terrain boundaries are art-direction estimates.
 
-When `world/generated_blender/AURORA_STRIKE_Master_Preview.glb` is present, Godot loads it and adds a static terrain collision mesh; if the file is absent, Godot retains the existing procedural fallback. The graphical runtime workflow builds the Blender master first and then captures multiple camera views from Godot.
+When `world/generated_blender/AURORA_STRIKE_Master_Preview.glb` is present, Godot loads it and adds a static terrain collision mesh. The master omits the primitive blockouts for Città Centrale, Stazione Termini and Centro Commerciale; the Blender-map runtime path replaces them with the repository's detailed Roman building scenes, the existing six-tower commercial builder, and the station builder anchored at (195, -242). If the GLB is absent, Godot retains the existing procedural fallback. The graphical runtime workflow builds the Blender master first and captures multiple real camera views from Godot.
 
 ## Blender map source pipeline
 
