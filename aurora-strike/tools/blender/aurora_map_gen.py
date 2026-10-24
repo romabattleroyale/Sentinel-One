@@ -115,12 +115,16 @@ def height(x,z):
  h+=18*(1-smooth(.55,1.05,dd))*(.55+.45*math.sin(x*.045+z*.023))
  city=max(gauss(x,z,-297,-250,310,185),gauss(x,z,195,-242,220,120),gauss(x,z,703,-375,250,190),gauss(x,z,31,70,180,145),gauss(x,z,406,78,185,150))
  h=h*(1-min(.78,city*.72))+8*min(.78,city*.72)
+ # Flatten the port apron at a low, walkable height outside the excavated basin.
+ port_weight=min(.92,gauss(x,z,-766,-250,260,220)*.92)
+ h=h*(1-port_weight)+2.5*port_weight
  relief_mask=(1.0-min(.92,city*.82))*smooth(5,30,h)
  h+=(ridge+erosion+fine)*relief_mask
  # Cut a proper shallow port basin under the water level, rather than covering intact land with blue.
- harbor_dx=x+805.0
+ harbor_dx=x+805.0;harbor_dz=z+250.0
  harbor_dx_norm=harbor_dx/(145.0 if harbor_dx<0 else 62.0)
- harbor_metric=harbor_dx_norm**2+((z+250.0)/132.0)**2
+ harbor_dz_norm=harbor_dz/(126.0 if harbor_dz<0 else 74.0)
+ harbor_metric=harbor_dx_norm**2+harbor_dz_norm**2
  if harbor_metric < 1.0:
   return -1.2 + .12*math.sin(x*.07+z*.04)
  return max(1.8,min(420,h))
