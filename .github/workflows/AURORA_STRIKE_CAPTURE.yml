@@ -16,13 +16,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install display and Blender tools
-        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool blender python3-numpy
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg xdotool blender python3-numpy libegl1 libgl1-mesa-dri libx11-6 libxi6 libxrender1 libxfixes3 libxkbcommon0
       - name: Generate island geometry with Blender
         working-directory: aurora-strike
         run: |
           set -euo pipefail
           rm -rf /tmp/aurora-strike-generated
-          AURORA_OUTPUT_DIR=/tmp/aurora-strike-generated PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
+          set -o pipefail
+          xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=4.5 AURORA_OUTPUT_DIR=/tmp/aurora-strike-generated PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
           mkdir -p world/generated_blender
           cp /tmp/aurora-strike-generated/AURORA_STRIKE_Master_Preview.glb world/generated_blender/AURORA_STRIKE_Master_Preview.glb
           test -s world/generated_blender/AURORA_STRIKE_Master_Preview.glb
