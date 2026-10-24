@@ -249,7 +249,7 @@ def paths_between(c):
      (px+ux*half_len-nx*half_w,py,pz+uz*half_len-nz*half_w),
      (px+ux*half_len+nx*half_w,py,pz+uz*half_len+nz*half_w)
     ])
-    mark_f.append((base,base+1,base+2,base+3))
+    mark_f.append((base,base+3,base+2,base+1))
     dash_counter+=1
  if mark_f:mesh("Road_Centre_Dashed_Markings",mark_v,mark_f,c,[M["yellow"]])
 
