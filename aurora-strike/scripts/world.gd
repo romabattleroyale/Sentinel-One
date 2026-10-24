@@ -1038,22 +1038,22 @@ func _set_capture_view(view: String) -> void:
 			capture_camera.look_at(Vector3(0,0,0),Vector3(0,0,-1))
 			capture_camera.fov = 70
 		"station":
-			capture_camera.global_position = Vector3(150,62,110)
-			capture_camera.look_at(Vector3(0,10,0))
-			capture_camera.fov = 65
+			capture_camera.global_position = Vector3(335,78,-85)
+			capture_camera.look_at(Vector3(195,14,-242))
+			capture_camera.fov = 58
 		"industrial":
-			capture_camera.global_position = Vector3(-245,92,600)
-			capture_camera.look_at(Vector3(-130,12,430))
-			capture_camera.fov = 66
+			capture_camera.global_position = Vector3(-145,108,260)
+			capture_camera.look_at(Vector3(31,12,70))
+			capture_camera.fov = 60
 		"coast":
-			capture_camera.global_position = Vector3(-720,105,215)
-			capture_camera.look_at(Vector3(-845,5,60))
-			capture_camera.fov = 66
+			capture_camera.global_position = Vector3(-1035,95,-160)
+			capture_camera.look_at(Vector3(-766,8,-250))
+			capture_camera.fov = 62
 		"downtown":
-			capture_camera.global_position = Vector3(150,105,180)
-			capture_camera.look_at(Vector3(-75,12,-35))
-			capture_camera.fov = 66
+			capture_camera.global_position = Vector3(-70,100,-60)
+			capture_camera.look_at(Vector3(-297,12,-250))
+			capture_camera.fov = 62
 		"snow":
-			capture_camera.global_position = Vector3(-720,300,-570)
-			capture_camera.look_at(Vector3(-650,28,-735))
-			capture_camera.fov = 65
+			capture_camera.global_position = Vector3(-860,650,-420)
+			capture_camera.look_at(Vector3(-531,175,-719))
+			capture_camera.fov = 55
