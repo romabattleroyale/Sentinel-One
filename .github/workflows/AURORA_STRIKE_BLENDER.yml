@@ -27,9 +27,11 @@ jobs:
           xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=4.5 PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python aurora-strike/tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
       - name: Validate road-river bridge placement
         run: |
-          test "$(grep -c 'Bridge [0-9][0-9] aligned to road' /tmp/aurora-blender.log)" -eq 2
-          grep -q 'Bridge 00 aligned to road 00 at (43.4, -243.9)' /tmp/aurora-blender.log
-          grep -q 'Bridge 01 aligned to road 02 at (-30.6, 511.5)' /tmp/aurora-blender.log
+          test "$(grep -c 'Bridge [0-9][0-9] aligned to road' /tmp/aurora-blender.log)" -ge 2
+          # The reference layout has more connected roads now: require crossings on the
+          # main spine and southern quarry route without assuming only two bridges exist.
+          grep -q 'Bridge .* aligned to road 00 at' /tmp/aurora-blender.log
+          grep -q 'Bridge .* aligned to road 02 at' /tmp/aurora-blender.log
       - name: Check key output files
         run: |
           test -s aurora-blender-test-output/AURORA_STRIKE_Map_Source.blend
