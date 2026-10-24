@@ -52,10 +52,14 @@ func _try_load_blender_map() -> bool:
 	return true
 
 func _add_master_terrain_collision(node: Node) -> void:
-	if node is MeshInstance3D and node.name == "Island_Terrain_2000m":
-		(node as MeshInstance3D).create_trimesh_collision()
-		print("AURORA_COLLISION | master terrain collision generated")
-		return
+	if node is MeshInstance3D:
+		var mesh_node := node as MeshInstance3D
+		if mesh_node.name == "Island_Terrain_2000m":
+			mesh_node.create_trimesh_collision()
+			print("AURORA_COLLISION | master terrain collision generated")
+		elif mesh_node.name.begins_with("River_Bridge_"):
+			mesh_node.create_trimesh_collision()
+			print("AURORA_COLLISION | bridge deck generated: ", mesh_node.name)
 	for child in node.get_children():
 		_add_master_terrain_collision(child)
 
