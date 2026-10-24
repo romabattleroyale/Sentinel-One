@@ -4,7 +4,7 @@ Progetto Godot 4.5.1+, GDScript, renderer Mobile, pensato per Android e iOS. La 
 
 ## Build attuale
 - Costa irregolare con oceano profondo, fascia di bassi fondali turchesi e spiagge con colori legati ai biomi.
-- Terreno generato con campionamento a 5 m e colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso; la griglia più fitta e le normali smussate riducono sagome a gradini e faccettature senza spostare gli ancoraggi POI.
+- Master Blender campionato a 5 m con colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso. Il fallback procedurale in `scripts/world.gd` usa invece una griglia da 28 m: non va confuso con il master Blender.
 - Lago Azzurro e corso d'acqua turchese, alberature aggiuntive nel bosco settentrionale e rilievi secondari nelle zone verdi e desertiche.
 - Rete stradale, marciapiedi più sottili, collegamenti verso porto, montagna, riviera, base militare, cava e deserto.
 - Città più densa con lotti allineati alla viabilità e 27 scene archetipiche romane già presenti nel repository, con materiali e texture importati.
@@ -26,7 +26,7 @@ Questa è una build giocabile in evoluzione, non ancora una replica fotorealisti
 
 The offline authoring pipeline is in `tools/blender/`. Run `aurora_map_gen.py` in Blender 3.6+ or 4.x to generate the estimated 2000 × 2000 m island, tile GLBs, modular POI GLBs, editable Blender source, overview PNG and CSV manifest. The generator follows the coordinate convention and sixteen approximate POI anchors from pages 3 and 5 of the production manual. Page 8 altitude bands and all intermediate terrain boundaries are art-direction estimates.
 
-When `world/generated_blender/AURORA_STRIKE_Master_Preview.glb` is present, Godot loads it and adds a static terrain collision mesh. The master omits the primitive blockouts for Città Centrale, Stazione Termini, Centro Commerciale and Zona Industriale; the Blender-map runtime path replaces them with the repository's detailed Roman building scenes, the six-tower commercial builder, the station builder anchored at (195, -242), and a detailed industrial complex with collision-enabled tanks, access ladders, roof vents, a pipe rack and pump skids anchored at (31, 70). If the GLB is absent, Godot retains the existing procedural fallback. The graphical runtime workflow builds the Blender master first and captures multiple real camera views from Godot.
+When `world/generated_blender/AURORA_STRIKE_Master_Preview.glb` is present, Godot loads it and adds a static terrain collision mesh. The 64 tile GLBs are generated and packaged but are not yet streamed as separate Godot scenes; the current runtime still uses the master GLB. The master omits the primitive blockouts for Città Centrale, Stazione Termini, Centro Commerciale and Zona Industriale; the Blender-map runtime path replaces them with the repository's detailed Roman building scenes, the six-tower commercial builder, the station builder anchored at (195, -242), and a detailed industrial complex with collision-enabled tanks, access ladders, roof vents, a pipe rack and pump skids anchored at (31, 70). If the GLB is absent, Godot retains the existing procedural fallback. The graphical runtime workflow builds the Blender master first and captures multiple real camera views from Godot.
 
 ## Blender map source pipeline
 
@@ -41,7 +41,7 @@ AURORA_OUTPUT_DIR=/path/to/output blender --background --python tools/blender/au
 Expected outputs:
 - `AURORA_STRIKE_Map_Source.blend`: editable Blender source scene.
 - `AURORA_STRIKE_Master_Preview.glb`: full scene used by the Godot prototype when present.
-- `tiles/Tile_X00_Z00.glb ... Tile_X07_Z07.glb`: 64 terrain tile exports. Each tile stores its terrain mesh in tile-local X/Z coordinates on a 5 m lattice and records `world_origin_x/world_origin_z` attributes; shared-edge samples are generated from the same global coordinates to minimize seams. Place each tile at that world origin in Godot.
+- `tiles/Tile_X00_Z00.glb ... Tile_X07_Z07.glb`: 64 sector GLBs (nel run corrente 62 settori con terreno e 2 settori solo mare). Ogni tile usa una griglia locale 21×21, quindi passo 12,5 m, e registra `world_origin_x/world_origin_z`; i campioni condivisi sui bordi derivano dalle stesse coordinate globali. Il master assemblato è invece campionato a 5 m. Prima di attivare lo streaming, verificare i trasformi e le giunzioni in Godot.
 - `poi/*.glb`: 16 modular POI exports, centered around their listed anchor.
 - `preview/aurora_strike_overview.png`: overhead rendered preview.
 - `manifest.csv`: tile origins, world bounds, POI anchors and procedural provenance.
