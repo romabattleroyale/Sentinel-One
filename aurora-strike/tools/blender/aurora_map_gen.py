@@ -181,20 +181,99 @@ def faceted_peak(name,x,z,base_y,radius,h,c,phase=0.0):
  for poly in obj.data.polygons: poly.use_smooth=False
  return obj
 
+def _world_noise(x,z,scale,seed):
+ # Deterministic multi-frequency value noise without an external texture dependency.
+ a=math.sin(x*scale+seed*1.731+math.sin(z*scale*.71+seed)*1.7)
+ b=math.sin(z*scale*1.23-seed*.93+math.sin(x*scale*.63)*1.2)
+ c=math.sin((x+z)*scale*.49+seed*2.17)
+ return (a*.48+b*.34+c*.18)
+def _urban_mask(x,z,cx,cz,rx,rz):
+ return math.exp(-.5*(((x-cx)/rx)**2+((z-cz)/rz)**2))
 def make_terrain(c):
- log("Generating dense island terrain")
- verts=[];colors=[];lookup={};faces=[];steps=int(SIZE/STEP)+1
+ log("Generating dense island terrain with procedural biome albedo")
+ # 1024² world-aligned texture: terrain keeps real geometry but has a painted landscape read from above.
+ resolution=1024
+ image=bpy.data.images.new("AURORA_STRIKE_Biome_Albedo",width=resolution,height=resolution,alpha=True,float_buffer=False)
+ pixels=[]
+ for py in range(resolution):
+  z=-1000.0+(py/(resolution-1))*2000.0
+  for px in range(resolution):
+   x=-1000.0+(px/(resolution-1))*2000.0
+   h=height(x,z)
+   c0=terrain_color(x,z,h)
+   n1=_world_noise(x,z,.026,17)
+   n2=_world_noise(x,z,.091,29)
+   n3=_world_noise(x,z,.27,43)
+   variation=1.0+n1*.18+n2*.085+n3*.032
+   rgb=[max(0,min(1,ch*variation)) for ch in c0]
+   # Forest canopy footprints have feathered, non-rectangular edges and multiple green tones.
+   forest=max(_urban_mask(x,z,227,-703,255,225),_urban_mask(x,z,-594,39,245,215)*.88,
+              _urban_mask(x,z,-610,445,190,235)*.65,_urban_mask(x,z,-240,-475,180,125)*.58)
+   forest=max(0,min(.9,forest*(.78+.12*n1+.09*n2)))
+   fcol=(.035+.016*n2,.145+.032*n1,.055+.018*n3)
+   for ci in range(3):rgb[ci]=rgb[ci]*(1-forest)+fcol[ci]*forest
+   # A mottled snow/rock field spans the north-west mountain massif.
+   mountain=_urban_mask(x,z,-575,-720,260,220)
+   rock=mountain*max(0,min(.9,(h-70)/145))*(.40+.35*(.5+.5*n2))
+   rcol=(.26+.05*n2,.28+.06*n2,.30+.06*n2)
+   for ci in range(3):rgb[ci]=rgb[ci]*(1-rock)+rcol[ci]*rock
+   snow=max(0,min(.98,(h-150)/105))*mountain
+   snowpatch=max(0,min(.85,.42+.27*n1+.16*n2))
+   snow*=snowpatch
+   for ci,white in enumerate((.91,.94,.97)):rgb[ci]=rgb[ci]*(1-snow)+white*snow
+   # Desert surface: warm mineral strata, dry river fans and sparse rock stippling.
+   desert=max(_urban_mask(x,z,641,438,275,230),_urban_mask(x,z,31,523,220,190)*.35)
+   dcol=(.77+.055*n1,.43+.045*n2,.22+.026*n3)
+   for ci in range(3):rgb[ci]=rgb[ci]*(1-desert)+dcol[ci]*desert
+   strata=.5+.5*math.sin((z+x*.42)*.071+2.4*n2)
+   strata_mix=desert*.14*strata
+   ochre=(.56,.24,.105)
+   for ci in range(3):rgb[ci]=rgb[ci]*(1-strata_mix)+ochre[ci]*strata_mix
+   # Agricultural parcel bands to the east of the commercial centre.
+   farm=_urban_mask(x,z,719,78,225,155)
+   if farm>.025:
+    row=abs(math.sin((x*.74+z*.18)*.105+n2*.7))
+    band=farm*(.10+.22*(row>.70))
+    soil=(.53,.39,.20)
+    for ci in range(3):rgb[ci]=rgb[ci]*(1-band)+soil[ci]*band
+   # Urban ground plateaus are neutral grey-beige with block-scale pavement variation.
+   urban=max(_urban_mask(x,z,-297,-250,185,135),_urban_mask(x,z,195,-242,145,100),
+             _urban_mask(x,z,703,-375,180,135),_urban_mask(x,z,31,70,145,125),
+             _urban_mask(x,z,406,78,155,130))
+   urban=max(0,min(.88,urban))
+   pavement=(.36+.035*n2,.35+.032*n2,.32+.028*n2)
+   for ci in range(3):rgb[ci]=rgb[ci]*(1-urban)+pavement[ci]*urban
+   pixels.extend((rgb[0],rgb[1],rgb[2],1.0))
+ image.pixels.foreach_set(pixels)
+ image.pack()
+ material=bpy.data.materials.new("AS_Biome_Terrain_PBR")
+ material.use_nodes=True
+ nodes=material.node_tree.nodes;links=material.node_tree.links
+ bs=nodes.get("Principled BSDF")
+ tex=nodes.new("ShaderNodeTexImage");tex.name="Biome_Albedo_Texture";tex.image=image;tex.interpolation="Linear"
+ links.new(tex.outputs["Color"],bs.inputs["Base Color"])
+ bs.inputs["Roughness"].default_value=.96
+ # Gentle fine bump gives earth/rock more readable relief under raking light.
+ noise=nodes.new("ShaderNodeTexNoise");noise.inputs["Scale"].default_value=5.5;noise.inputs["Detail"].default_value=5.0;noise.inputs["Roughness"].default_value=.72
+ bump=nodes.new("ShaderNodeBump");bump.inputs["Strength"].default_value=.16;bump.inputs["Distance"].default_value=.45
+ links.new(noise.outputs["Fac"],bump.inputs["Height"]);links.new(bump.outputs["Normal"],bs.inputs["Normal"])
+ verts=[];uvs=[];lookup={};faces=[];steps=int(SIZE/STEP)+1
  for iz in range(steps):
   z=-1000+iz*STEP
   for ix in range(steps):
    x=-1000+ix*STEP
-   if inside(x,z):lookup[(ix,iz)]=len(verts);h=height(x,z);verts.append((x,h,z));colors.append(terrain_color(x,z,h))
+   if inside(x,z):
+    lookup[(ix,iz)]=len(verts);verts.append((x,height(x,z),z));uvs.append(((x+1000)/2000,(z+1000)/2000))
  for (ix,iz),a in lookup.items():
   if (ix+1,iz) in lookup and (ix,iz+1) in lookup and (ix+1,iz+1) in lookup:
    b=lookup[(ix+1,iz)];d=lookup[(ix,iz+1)];e=lookup[(ix+1,iz+1)];faces.extend([(a,d,b),(b,d,e)])
- terrain_obj=mesh("Island_Terrain_2000m",verts,faces,c,[M["grass"]],colors=colors)
- # Smooth vertex normals are essential here: without them even a dense 5m grid looks like hard triangular facets.
- for poly in terrain_obj.data.polygons: poly.use_smooth=True
+ terrain_obj=mesh("Island_Terrain_2000m",verts,faces,c,[material])
+ uv_layer=terrain_obj.data.uv_layers.new(name="World_Albedo_UV")
+ for poly in terrain_obj.data.polygons:
+  poly.use_smooth=True
+  for loop_index in poly.loop_indices:
+   uv_layer.data[loop_index].uv=uvs[terrain_obj.data.loops[loop_index].vertex_index]
+ # Add a second, lower-detail rock/sand shoulder along sea-facing cliffs for top-down relief.
  return terrain_obj
 def ribbon(name,points,width,yoff,ma,c):
  verts=[];faces=[]
