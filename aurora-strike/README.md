@@ -4,7 +4,7 @@ Progetto Godot 4.5.1+, GDScript, renderer Mobile, pensato per Android e iOS. La 
 
 ## Build attuale
 - Costa irregolare con oceano profondo, fascia di bassi fondali turchesi e spiagge con colori legati ai biomi.
-- Terreno generato con campionamento a 5 m e colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso; la griglia più fitta riduce le sagome a gradini senza spostare gli ancoraggi POI.
+- Terreno generato con campionamento a 5 m e colori di bioma sfumati: neve a nord-ovest, bosco ombra, colline verdi, zona agricola, cava sabbiosa e deserto rosso; la griglia più fitta e le normali smussate riducono sagome a gradini e faccettature senza spostare gli ancoraggi POI.
 - Lago Azzurro e corso d'acqua turchese, alberature aggiuntive nel bosco settentrionale e rilievi secondari nelle zone verdi e desertiche.
 - Rete stradale, marciapiedi più sottili, collegamenti verso porto, montagna, riviera, base militare, cava e deserto.
 - Città più densa con lotti allineati alla viabilità e 27 scene archetipiche romane già presenti nel repository, con materiali e texture importati.
