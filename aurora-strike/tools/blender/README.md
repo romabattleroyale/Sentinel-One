@@ -15,3 +15,6 @@ The pipeline creates editable Blender source, a top-down overview PNG, terrain t
 
 ## Important
 The manual's page 5 POI coordinates and page 8 altitudes are estimates inferred from an illustration, not a measured 3D world. The generated terrain and district shapes remain an art-directed blockout. Validate seams, GLB transforms, slopes, collisions and mobile performance in Godot before using all tiles in the game. Blender owns static geometry; existing Godot scripts remain responsible for runtime gameplay and controls. No third-party assets are bundled.
+## River and bridge validation
+
+The terrain valley and visible river use the same `river_center_x(z)` function. Bridge decks are generated only at actual intersections between the river polyline and the authored road polylines; each deck is aligned to its road tangent and its top is matched to the road ribbon height. The Godot importer creates a static trimesh collision for the master terrain and for each `River_Bridge_*` deck. The graphical CI run checks that both current bridge collision nodes are present in the real runtime log. This validates scene generation and collision creation, not yet a manual traversal test on a target phone.
