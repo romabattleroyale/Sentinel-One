@@ -1054,6 +1054,6 @@ func _set_capture_view(view: String) -> void:
 			capture_camera.look_at(Vector3(-297,12,-250))
 			capture_camera.fov = 62
 		"snow":
-			capture_camera.global_position = Vector3(-860,650,-420)
-			capture_camera.look_at(Vector3(-531,175,-719))
-			capture_camera.fov = 55
+			capture_camera.global_position = Vector3(-1150,630,-170)
+			capture_camera.look_at(Vector3(-531,145,-719))
+			capture_camera.fov = 58
