@@ -137,10 +137,14 @@ def ribbon(name,points,width,yoff,ma,c):
 def build_water(c):
  mesh("Open_Ocean",[(-1200,-1,-1200),(1200,-1,-1200),(1200,-1,1200),(-1200,-1,1200)],[(0,2,1),(0,3,2)],c,[M["deep"]])
  v=[];f=[];idx=[]
- for i,(x,z) in enumerate(COAST):
-  v.extend([(x,.5,z),(x*1.035,-.2,z*1.035)])
+ # Two continuous concentric bands: warm sand on the inner strip, turquoise shallows on the outer strip.
+ # Avoid alternating material on adjacent triangles, which made a jagged checkerboard coastline.
+ for x,z in COAST:
+  v.extend([(x*.965,6.4,z*.965),(x,2.8,z),(x*1.035,-.15,z*1.035)])
  for i in range(len(COAST)):
-  n=(i+1)%len(COAST);f.extend([(i*2,n*2,i*2+1),(i*2+1,n*2,n*2+1)]);idx.extend([0,1])
+  n=(i+1)%len(COAST);a=i*3;b=n*3
+  f.extend([(a,b,a+1),(a+1,b,b+1)]);idx.extend([1,1])
+  f.extend([(a+1,b+1,a+2),(a+2,b+1,b+2)]);idx.extend([0,0])
  mesh("Turquoise_Shore_Ring",v,f,c,[M["shallow"],M["sand"]],idx)
  # Real internal lake surface with irregular shoreline.
  cx,cz=-94,-633;v=[(cx,31,cz)];n=64
