@@ -83,3 +83,26 @@
 - Ispezione visiva delle nuove schermate runtime dopo la generazione della mappa aggiornata.
 - Collisioni e percorribilità a piedi/veicolo di ponti, rive, strade e nuovi edifici; i test automatici controllano parsing, generazione e avvio ma non sostituiscono un playtest interattivo.
 - Verifica di prestazioni su dispositivo Android/iOS, giunzioni di tutti i tile in streaming, materiali PBR e qualità finale contro la tavola concept. La mappa consegnata in questo checkpoint è un avanzamento procedurale, non ancora una ricostruzione fotorealistica completa.
+
+
+## 2026-10-24 — Reference-map pass: terrain forms, road connectivity and POI detail
+
+### Pre-change review
+- Re-read the map execution PDF, especially page 3 coordinate convention, page 5 POI anchors and page 8 terrain workflow.
+- Inspected the main scene `scenes/Main.tscn` and attached `scripts/world.gd`; checked `scripts/player.gd`, `project.godot`, and the Blender generator before editing. The Godot scene is a Node3D scripted root; runtime loads the generated master GLB and recursively creates collision for the terrain and all `River_Bridge_*` mesh nodes. Existing input map and player script were left untouched.
+
+### Changes applied
+- Blender terrain heightfield: overlapping asymmetric north-west mountain ridges, quarry bowl / raised rim, southern desert mesa relief and small-/mid-frequency relief noise dampened around city plateaus.
+- Shoreline elevation/colour band is varied by biome rather than one repeated flat coast profile.
+- Road graph expanded to 12 connected routes linking port, central city, Termini, residential, commercial/agricultural district, lake/forest, Riviera, military edge, quarry and desert approach; paths are sampled smoothly with Catmull–Rom interpolation and use wider main-spine asphalt ribbons.
+- City POI expanded from 24 simple blocks to 42 building masses with façade windows and shopfront/awning details. Residential module adds variable footprint/height, windows and selected balconies.
+- Woodland batches expanded to additional forest pockets and higher density; overview render settings request more samples and ambient occlusion when Blender exposes those options.
+- Updated the Blender workflow's bridge assertions so the extended network may produce more than two valid crossings while checking the main spine and southern quarry route. Updated generator README with the scope and limitations.
+
+### Verification status
+- **Not yet run for this commit** at log-write time. The generator workflow must validate Python syntax, terrain/POI exports, bridge intersections and all 64 tile / 16 POI outputs. The Godot headless and graphical capture workflows must also complete against the final branch commit before treating this revision as runtime verified.
+- Previous successful run for the prior revision does not constitute validation of this new road/terrain pass.
+
+### Remaining work toward the supplied concept
+- The map still needs asset-level visual production: detailed unique architecture/props at all 16 POIs, credible PBR materials and texture sets, stronger individual coastal/river geometry and foam, vegetation species variation, decals and clutter, and visual iteration against the top-down reference.
+- No claim of photorealism or complete final-map fidelity is made at this stage. Mobile-device performance, all tile seams/streaming transforms, walking/driving on bridges/roads and interactive POI collision checks remain manual QA items.
