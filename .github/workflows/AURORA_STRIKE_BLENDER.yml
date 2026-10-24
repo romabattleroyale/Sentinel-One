@@ -16,13 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Blender and export validation tools
-        run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
+        run: sudo apt-get update && sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libx11-6 libxi6 libxrender1 libxfixes3 libxkbcommon0
       - name: Validate Python syntax
         run: python3 -m py_compile aurora-strike/tools/blender/aurora_map_gen.py
       - name: Generate test island and assets
         env:
           AURORA_OUTPUT_DIR: ${{ github.workspace }}/aurora-blender-test-output
-        run: PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python aurora-strike/tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
+        run: |
+          set -o pipefail
+          xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=4.5 PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python aurora-strike/tools/blender/aurora_map_gen.py 2>&1 | tee /tmp/aurora-blender.log
       - name: Check key output files
         run: |
           test -s aurora-blender-test-output/AURORA_STRIKE_Map_Source.blend
