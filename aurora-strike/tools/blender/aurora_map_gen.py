@@ -312,13 +312,24 @@ def main():
    data=d.data;bpy.data.objects.remove(d,do_unlink=True)
    if data and data.users==0 and isinstance(data,bpy.types.Mesh):bpy.data.meshes.remove(data)
   rows.append(["poi_module",pid,str(path),"","",x,z,x,z,"procedural original; estimated concept coordinates"])
- try:glb_export([o for o in bpy.context.scene.objects if o.type in {"MESH","CURVE"}],OUT/"AURORA_STRIKE_Master_Preview.glb")
- except Exception as e:log("Master GLB export warning: "+str(e))
- scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")
- try:bpy.ops.render.render(write_still=True)
- except Exception as e:log("Overview render warning: "+str(e))
- with open(OUT/"manifest.csv","w",newline="",encoding="utf-8") as f:
+ # Manifest is persisted before render; a graphics-driver failure must not lose the inventory.
+ manifest=OUT/"manifest.csv"
+ with open(manifest,"w",newline="",encoding="utf-8") as f:
   w=csv.writer(f);w.writerow(["type","id","file","tile_x","tile_z","origin_x","origin_z","max_x","max_z","provenance"]);w.writerows(rows)
+ log("Manifest written: %d assets"%len(rows))
+ try:
+  log("Exporting master preview GLB")
+  glb_export([o for o in bpy.context.scene.objects if o.type in {"MESH","CURVE"}],OUT/"AURORA_STRIKE_Master_Preview.glb")
+ except Exception as e:log("Master GLB export warning: "+str(e))
+ # Render last, after the source, tiles, POIs, master GLB, and manifest have been saved.
+ scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")
+ try:
+  log("Rendering 1600x1600 overview PNG")
+  bpy.ops.render.render(write_still=True)
+  overview=OUT/"preview"/"aurora_strike_overview.png"
+  if overview.exists() and overview.stat().st_size>10000: log("Overview render complete: %s bytes"%overview.stat().st_size)
+  else: log("Overview render returned without a usable image")
+ except Exception as e:log("Overview render warning: "+str(e))
  log("FINISHED: %d terrain tiles and %d POIs in %s"%(len(tile_paths),len(poi_paths),OUT))
 if __name__=="__main__":
  try:main()
