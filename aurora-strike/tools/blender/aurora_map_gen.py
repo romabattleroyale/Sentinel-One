@@ -79,6 +79,9 @@ def inside(x,z):
 def gauss(x,z,cx,cz,sx,sz): return math.exp(-.5*(((x-cx)/sx)**2+((z-cz)/sz)**2))
 def smooth(a,b,x):
  t=max(0,min(1,(x-a)/(b-a)));return t*t*(3-2*t)
+def river_center_x(z):
+ # Single authoritative centerline shared by terrain depression, river water and bridge placement.
+ return 130+125*math.sin((z+180)*.006)+90*math.sin(z*.011)
 def height(x,z):
  h=7+2*math.sin(x*.018)*math.cos(z*.014)
  h+=(18+12*math.sin(x*.035+z*.017))*gauss(x,z,-594,39,285,255)
@@ -89,7 +92,7 @@ def height(x,z):
  # Small ridge-scale variation breaks up the smooth Gaussian dome without changing POI anchors.
  h+=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*8.0*smooth(55,135,h)
  lake=math.sqrt(((x+94)/150)**2+((z+633)/112)**2);h-=20*(1-smooth(.8,1.2,lake))
- rx=130+125*math.sin((z+100)*.0035)+70*math.sin(z*.01);h-=8*(1-smooth(18,54,abs(x-rx)))
+ rx=river_center_x(z);h-=8*(1-smooth(18,54,abs(x-rx)))
  city=gauss(x,z,-297,-250,310,185)+gauss(x,z,195,-242,220,120);h=h*(1-min(.72,city*.6))+8*min(.72,city*.6)
  return max(1.8,min(420,h))
 def terrain_color(x,z,h):
@@ -202,7 +205,7 @@ def build_water(c):
  # Curving outlet river heads south.
  pts=[]
  for j in range(181):
-  z=-535+j*8;x=130+125*math.sin((z+180)*.006)+90*math.sin(z*.011);pts.append((x,z))
+  z=-535+j*8;pts.append((river_center_x(z),z))
  ribbon("River_Shore_Bed",pts,58,.6,M["sand"],c);ribbon("River_Water",pts,43,4.0,M["water"],c)
 def paths_between(c):
  roads=[
@@ -218,10 +221,42 @@ def paths_between(c):
    for i in range(num):
     t=i/num;pts.append((a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t))
   pts.append(path[-1]);ribbon("Road_%02d"%j,pts,14 if j==0 else 9,.55,M["asphalt"],c)
- # Bridge decks at four approximate river crossings.
- for i,(x,z) in enumerate([(-8,90),(140,235),(180,410),(115,615)]):
-  cube("River_Bridge_%02d"%i,(x,height(x,z)+4,z),(26,1.8,62),M["concrete"],c,.25)
-  for side in [-1,1]:cube("Bridge_Rail_%d_%d"%(i,side),(x+side*12,height(x,z)+6,z),(1,1,62),M["metal"],c)
+
+ # Find the actual road/river polyline intersections instead of placing bridges at unrelated coordinates.
+ def intersect(a,b,d,e):
+  rx,rz=b[0]-a[0],b[1]-a[1]
+  sx,sz=e[0]-d[0],e[1]-d[1]
+  den=rx*sz-rz*sx
+  if abs(den)<1e-8:return None
+  qx,qz=d[0]-a[0],d[1]-a[1]
+  t=(qx*sz-qz*sx)/den
+  u=(qx*rz-qz*rx)/den
+  if 0.0<=t<=1.0 and 0.0<=u<=1.0:
+   return (a[0]+t*rx,a[1]+t*rz,rx,rz)
+  return None
+ river_pts=[(river_center_x(-535+j*8),-535+j*8) for j in range(181)]
+ crossings=[]
+ for road_index,path in enumerate(roads):
+  for a,b in zip(path,path[1:]):
+   for d,e in zip(river_pts,river_pts[1:]):
+    hit=intersect(a,b,d,e)
+    if hit and all(math.hypot(hit[0]-old[0],hit[1]-old[1])>12.0 for old in crossings):
+     crossings.append((hit[0],hit[1],hit[2],hit[3],road_index))
+ if not crossings:
+  raise RuntimeError("Road network does not intersect the river; bridge generation would be invalid")
+ for i,(x,z,dx,dz,road_index) in enumerate(crossings):
+  tangent_len=math.hypot(dx,dz) or 1.0
+  ux,uz=dx/tangent_len,dz/tangent_len
+  nx,nz=-uz,ux
+  yaw=-math.atan2(uz,ux)
+  ground=height(x,z)
+  # Deck top is aligned to the road ribbon (height + 0.55); the long axis follows the road tangent.
+  deck=cube("River_Bridge_%02d"%i,(x,ground-0.35,z),(64,1.8,18),M["concrete"],c,.25)
+  deck.rotation_euler[1]=yaw
+  for side in (-1,1):
+   rail=cube("Bridge_Rail_%d_%d"%(i,side),(x+nx*8.6,ground+1.15,z+nz*8.6),(64,1.2,.8),M["metal"],c,.08)
+   rail.rotation_euler[1]=yaw
+  log("Bridge %02d aligned to road %02d at (%.1f, %.1f)"%(i,road_index,x,z))
 def make_poi(poi,root):
  pid,label,x,z,kind=poi;c=collection("POI_"+pid,root);y=height(x,z)
  def b(n,dx,dy,dz,sx,sy,sz,ma,bev=0):return cube(label+"_"+n,(x+dx,y+dy,z+dz),(sx,sy,sz),ma,c,bev)
