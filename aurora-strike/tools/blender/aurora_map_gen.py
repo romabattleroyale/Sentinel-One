@@ -172,6 +172,17 @@ def ribbon(name,points,width,yoff,ma,c):
  return mesh(name,verts,faces,c,[ma])
 def build_water(c):
  mesh("Open_Ocean",[(-1200,-1,-1200),(1200,-1,-1200),(1200,-1,1200),(-1200,-1,1200)],[(0,2,1),(0,3,2)],c,[M["deep"]])
+ # Close gaps left by the 5m raster grid with a thin, color-matched strip that follows the smoothed coast.
+ lip_v=[];lip_f=[];lip_colors=[]
+ for x,z in COAST:
+  ix,iz=x*.99,z*.99
+  ih=height(ix,iz);ch=height(x,z)
+  lip_v.extend([(ix,ih+.12,iz),(x,ch+.12,z)])
+  lip_colors.extend([terrain_color(ix,iz,ih),terrain_color(x,z,ch)])
+ for i in range(len(COAST)):
+  a=i*2;b=((i+1)%len(COAST))*2
+  lip_f.extend([(a,b,a+1),(a+1,b,b+1)])
+ mesh("Coastline_Land_Lip",lip_v,lip_f,c,[M["grass"]],colors=lip_colors)
  v=[];f=[];idx=[]
  # Two continuous concentric bands: warm sand on the inner strip, turquoise shallows on the outer strip.
  # Avoid alternating material on adjacent triangles, which made a jagged checkerboard coastline.

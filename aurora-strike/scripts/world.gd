@@ -937,16 +937,29 @@ func _build_landmarks(use_blender_anchor: bool = false) -> void:
 	add_child(station)
 	_box(station,"Station_Main_Hall",Vector3(118,20,48),Vector3(0,10.1,0),stone,true)
 	_box(station,"Station_Glass_Front",Vector3(96,12,0.7),Vector3(0,11.1,24.4),dark)
-	_box(station,"Station_Roof",Vector3(126,2,54),Vector3(0,21.1,0),_mat(Color(0.22,0.25,0.27),0.4,0.35))
+	var roof_mat := _mat(Color(0.22,0.25,0.27),0.4,0.35)
+	_box(station,"Station_Roof",Vector3(126,2,54),Vector3(0,21.1,0),roof_mat)
+	var roof_glass := _mat(Color(0.065,0.14,0.18),0.22,0.24)
+	var roof_rib := _mat(Color(0.39,0.42,0.42),0.52,0.18)
+	for skylight_x in range(-40,41,20):
+		_box(station,"Station_Roof_Skylight",Vector3(4.0,0.14,44.0),Vector3(float(skylight_x),22.18,0),roof_glass)
+	for rib_x in range(-54,55,12):
+		_box(station,"Station_Roof_Rib",Vector3(0.8,0.36,51.0),Vector3(float(rib_x),22.25,0),roof_rib)
 	for x in range(-48,49,16):
 		_box(station,"Facade_Pillar",Vector3(1.5,15,1.5),Vector3(x,7.6,25),stone)
-	_box(station,"Sign_Red",Vector3(30,3,0.6),Vector3(0,17.1,25.2),red)
+	var facade_frame := _mat(Color(0.73,0.69,0.60),0.48,0.12)
+	var entry_glass := _mat(Color(0.055,0.13,0.17),0.22,0.18)
+	for mullion_x in range(-42,43,12):
+		_box(station,"Station_Facade_Mullion",Vector3(0.42,11.6,0.38),Vector3(float(mullion_x),11.1,25.08),facade_frame)
+	for door_x in [-18.0,-9.0,0.0,9.0,18.0]:
+		_box(station,"Station_Entry_Door",Vector3(3.6,5.8,0.30),Vector3(door_x,4.4,25.24),entry_glass)
+	_box(station,"Sign_Red",Vector3(36,3.2,0.6),Vector3(0,17.1,25.2),red)
 	var station_sign := Label3D.new()
 	station_sign.name = "Station_Termini_3D_Sign"
 	station_sign.text = "STAZIONE TERMINI"
-	station_sign.font_size = 64
-	station_sign.pixel_size = 0.015
-	station_sign.outline_size = 6
+	station_sign.font_size = 112
+	station_sign.pixel_size = 0.022
+	station_sign.outline_size = 8
 	station_sign.modulate = Color(1.0,0.98,0.88)
 	station_sign.position = Vector3(0,17.0,25.65)
 	station.add_child(station_sign)
@@ -957,6 +970,9 @@ func _build_landmarks(use_blender_anchor: bool = false) -> void:
 	for platform_z in [-58.0,-32.0,32.0,58.0]:
 		_box(station,"Railway_Platform",Vector3(155,0.65,12),Vector3(0,0.48,platform_z),platform_mat,true)
 		_box(station,"Platform_Canopy",Vector3(156,0.75,12),Vector3(0,9.0,platform_z),canopy_mat)
+		_box(station,"Platform_Canopy_Glass",Vector3(146,0.08,3.0),Vector3(0,9.42,platform_z),roof_glass)
+		_box(station,"Platform_Canopy_Fascia_Front",Vector3(156,0.36,0.55),Vector3(0,9.0,platform_z-5.8),facade_frame)
+		_box(station,"Platform_Canopy_Fascia_Back",Vector3(156,0.36,0.55),Vector3(0,9.0,platform_z+5.8),facade_frame)
 		for px in range(-70,71,35):
 			_box(station,"Platform_Support",Vector3(1.4,8.0,1.4),Vector3(float(px),4.4,platform_z),canopy_mat)
 			_box(station,"Platform_Light",Vector3(4.5,0.25,1.3),Vector3(float(px),9.45,platform_z),_mat(Color(0.87,0.81,0.59)))
