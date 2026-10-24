@@ -414,7 +414,7 @@ def main():
  try:
   log("Exporting master preview GLB")
   # The runtime replaces these low-detail blockouts with existing detailed Godot scenes.
-  detailed_poi_prefixes=("Città Centrale_","Stazione Termini_","Centro Commerciale_")
+  detailed_poi_prefixes=("Città Centrale_","Stazione Termini_","Centro Commerciale_","Zona Industriale_")
   master_objects=[o for o in bpy.context.scene.objects
                   if o.type in {"MESH","CURVE"} and not o.name.startswith(detailed_poi_prefixes)]
   glb_export(master_objects,OUT/"AURORA_STRIKE_Master_Preview.glb")

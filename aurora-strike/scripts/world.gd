@@ -924,7 +924,135 @@ func _build_blender_map_architecture() -> void:
 		var local_z := float(int(tower_id / 3)) * 56.0 - 28.0
 		_build_commercial_tower(commercial, tower_id, local_x, local_z)
 
+	_build_industrial_complex()
 	_build_landmarks(true)
+
+func _add_industrial_cylinder(parent: Node3D, node_name: String, radius: float, height: float, pos: Vector3, material: Material, rotation: Vector3 = Vector3.ZERO, collision: bool = false) -> MeshInstance3D:
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = radius
+	cylinder.bottom_radius = radius
+	cylinder.height = height
+	cylinder.radial_segments = 24
+	var node := MeshInstance3D.new()
+	node.name = node_name
+	node.mesh = cylinder
+	node.position = pos
+	node.rotation_degrees = rotation
+	node.material_override = material
+	parent.add_child(node)
+	if collision:
+		var body := StaticBody3D.new()
+		body.name = node_name + "_Collision"
+		parent.add_child(body)
+		var shape := CollisionShape3D.new()
+		var cylinder_shape := CylinderShape3D.new()
+		cylinder_shape.radius = radius
+		cylinder_shape.height = height
+		shape.shape = cylinder_shape
+		shape.position = pos
+		body.add_child(shape)
+	return node
+
+func _build_industrial_complex() -> void:
+	# Detailed runtime replacement for the Blender box-and-cylinder blockout.
+	var plant := Node3D.new()
+	plant.name = "Detailed_Zona_Industriale"
+	plant.position = Vector3(31.0, 8.0, 70.0)
+	add_child(plant)
+
+	var concrete := _mat(Color(0.34,0.36,0.35),0.92)
+	var wall := _mat(Color(0.35,0.39,0.39),0.86)
+	var roof := _mat(Color(0.14,0.18,0.19),0.72,0.18)
+	var roof_light := _mat(Color(0.28,0.32,0.32),0.62,0.16)
+	var glass := _mat(Color(0.055,0.15,0.19),0.26,0.2)
+	var metal := _mat(Color(0.25,0.30,0.31),0.52,0.42)
+	var tank_mat := _mat(Color(0.39,0.43,0.42),0.62,0.32)
+	var tank_cap := _mat(Color(0.25,0.29,0.29),0.58,0.36)
+	var rust := _mat(Color(0.48,0.22,0.13),0.76,0.18)
+	var safety := _mat(Color(0.91,0.66,0.13),0.66,0.08)
+	var dark := _mat(Color(0.075,0.09,0.095),0.76)
+
+	_box(plant,"Industrial_Concrete_Yard",Vector3(150,0.8,126),Vector3(0,0.4,14),concrete,true)
+	# Perimeter safety paint and drainage channels break up the bare foundation.
+	_box(plant,"Yard_Safety_Line_Front",Vector3(146,0.08,0.7),Vector3(0,0.84,75),safety)
+	_box(plant,"Yard_Safety_Line_Back",Vector3(146,0.08,0.7),Vector3(0,0.84,-47),safety)
+	_box(plant,"Yard_Safety_Line_Left",Vector3(0.7,0.08,120),Vector3(-73,0.84,14),safety)
+	_box(plant,"Yard_Safety_Line_Right",Vector3(0.7,0.08,120),Vector3(73,0.84,14),safety)
+
+	# Main warehouse, segmented roof and visible structural ribs.
+	_box(plant,"Factory_Main_Hall",Vector3(106,18,74),Vector3(0,10,-10),wall,true)
+	_box(plant,"Factory_Roof_Main",Vector3(112,1.4,80),Vector3(0,19.6,-10),roof)
+	for panel_x in range(-48,49,12):
+		_box(plant,"Factory_Roof_Panel",Vector3(10.8,0.14,73),Vector3(float(panel_x),20.38,-10),roof_light if int((panel_x+48)/12)%2==0 else roof)
+	for rib_x in range(-50,51,25):
+		_box(plant,"Factory_Roof_Rib",Vector3(0.7,0.28,76),Vector3(float(rib_x),20.52,-10),metal)
+	for vent_x in [-32.0,0.0,32.0]:
+		_add_industrial_cylinder(plant,"Factory_Roof_Exhaust",2.0,3.0,Vector3(vent_x,22.5,-10),metal)
+		_box(plant,"Factory_Exhaust_Cap",Vector3(5.5,0.35,5.5),Vector3(vent_x,24.0,-10),dark)
+
+	# Four rolling doors and upper ribbon glazing on the front elevation.
+	for door_idx in range(4):
+		var door_x := -36.0 + float(door_idx)*24.0
+		_box(plant,"Factory_Roller_Door",Vector3(10.5,7.5,0.42),Vector3(door_x,5.1,27.42),dark)
+		_box(plant,"Factory_Door_Header",Vector3(11.4,0.45,0.7),Vector3(door_x,8.95,27.5),safety)
+		_box(plant,"Factory_Door_Frame_Left",Vector3(0.4,7.9,0.6),Vector3(door_x-5.55,5.1,27.5),metal)
+		_box(plant,"Factory_Door_Frame_Right",Vector3(0.4,7.9,0.6),Vector3(door_x+5.55,5.1,27.5),metal)
+		for slat in range(8):
+			_box(plant,"Roller_Door_Slat",Vector3(10.1,0.12,0.47),Vector3(door_x,1.8+float(slat)*0.9,27.72),roof_light)
+	for window_x in range(-42,43,14):
+		_box(plant,"Factory_Upper_Window",Vector3(10.5,2.3,0.35),Vector3(float(window_x),14.8,27.52),glass)
+		_box(plant,"Factory_Window_Sill",Vector3(10.9,0.22,0.55),Vector3(float(window_x),13.55,27.55),metal)
+	var plant_sign_panel := _box(plant,"Factory_Sign_Panel",Vector3(32,3.4,0.5),Vector3(0,17.4,27.65),dark)
+	var plant_sign := Label3D.new()
+	plant_sign.name = "Industrial_Zone_3D_Sign"
+	plant_sign.text = "ZONA INDUSTRIALE"
+	plant_sign.font_size = 58
+	plant_sign.pixel_size = 0.018
+	plant_sign.outline_size = 5
+	plant_sign.modulate = Color(0.96,0.79,0.3)
+	plant_sign.position = Vector3(0,17.15,27.95)
+	plant.add_child(plant_sign)
+
+	# Seven tanks with feet, caps, access ports, inspection bands and collision bodies.
+	var tank_xs: Array[float] = []
+	for tank_idx in range(7):
+		var tank_x := -65.0 + float(tank_idx)*21.5
+		tank_xs.append(tank_x)
+		_box(plant,"Tank_Concrete_Footing",Vector3(17,0.45,17),Vector3(tank_x,0.95,49),concrete,true)
+		_add_industrial_cylinder(plant,"Industrial_Process_Tank",7.5,18.0,Vector3(tank_x,10.0,49),tank_mat,Vector3.ZERO,true)
+		_add_industrial_cylinder(plant,"Tank_Lower_Ring",7.95,0.42,Vector3(tank_x,4.0,49),metal)
+		_add_industrial_cylinder(plant,"Tank_Upper_Ring",7.95,0.42,Vector3(tank_x,15.8,49),metal)
+		_add_industrial_cylinder(plant,"Tank_Rust_Inspection_Band",7.82,0.26,Vector3(tank_x,8.0,49),rust)
+		_add_industrial_cylinder(plant,"Tank_Top_Cap",7.1,0.55,Vector3(tank_x,19.25,49),tank_cap)
+		_add_industrial_cylinder(plant,"Tank_Top_Vent",0.85,2.0,Vector3(tank_x,20.5,49),dark)
+		_box(plant,"Tank_Identification_Panel",Vector3(3.4,1.5,0.42),Vector3(tank_x,11.5,56.42),safety)
+		if tank_idx % 2 == 0:
+			# Ladder rails and individual rungs on alternating tanks keep the asset set detailed but bounded.
+			for side in [-1.0,1.0]:
+				_box(plant,"Tank_Ladder_Rail",Vector3(0.28,14.6,0.32),Vector3(tank_x+side*1.25,9.0,56.55),metal)
+			for rung_idx in range(2,17,2):
+				_box(plant,"Tank_Ladder_Rung",Vector3(2.4,0.22,0.36),Vector3(tank_x,float(rung_idx),56.72),metal)
+
+	# Pipe rack between the warehouse and tank farm: headers, supports, valves and pump skids.
+	for support_x in range(-60,61,20):
+		_box(plant,"Pipe_Rack_Column",Vector3(1.1,10.5,1.1),Vector3(float(support_x),6.1,34),metal,true)
+		_box(plant,"Pipe_Rack_Crossbeam",Vector3(3.2,0.6,3.2),Vector3(float(support_x),11.3,34),safety)
+	_add_industrial_cylinder(plant,"Pipe_Header_Main",0.95,138.0,Vector3(0,14.6,34),metal,Vector3(0,0,90))
+	_add_industrial_cylinder(plant,"Pipe_Header_Return",0.62,136.0,Vector3(0,12.6,37.0),rust,Vector3(0,0,90))
+	for pipe_x in tank_xs:
+		_add_industrial_cylinder(plant,"Tank_Inlet_Riser",0.5,6.5,Vector3(pipe_x,8.0,39.0),metal)
+		_box(plant,"Pipe_Valve_Handle",Vector3(1.6,0.25,1.6),Vector3(pipe_x,11.7,39.0),safety)
+	for pump_x in [-45.0,-15.0,15.0,45.0]:
+		_box(plant,"Pump_Skid_Base",Vector3(10,0.6,6),Vector3(pump_x,1.25,35),dark,true)
+		_add_industrial_cylinder(plant,"Transfer_Pump",1.7,4.2,Vector3(pump_x,3.6,35),metal,Vector3(0,0,90))
+		_box(plant,"Pump_Motor",Vector3(4.2,2.8,3.4),Vector3(pump_x+3.2,3.5,35),rust)
+
+	# Auxiliary control room, mounted meters and small window panels on the yard edge.
+	_box(plant,"Plant_Control_Room",Vector3(20,9,17),Vector3(59,5.3,-19),wall,true)
+	_box(plant,"Control_Room_Roof",Vector3(21.5,1.0,18.5),Vector3(59,10.3,-19),roof)
+	for control_x in [53.0,59.0,65.0]:
+		_box(plant,"Control_Room_Window",Vector3(4.5,2.3,0.35),Vector3(control_x,6.4,-10.35),glass)
+	_box(plant,"Control_Room_Door",Vector3(2.8,5.5,0.35),Vector3(59,3.6,-10.2),dark,true)
 
 func _build_landmarks(use_blender_anchor: bool = false) -> void:
 	var stone := _mat(Color(0.69,0.62,0.49))
