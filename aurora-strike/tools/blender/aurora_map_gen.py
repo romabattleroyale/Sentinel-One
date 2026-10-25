@@ -286,6 +286,60 @@ def install_realistic_material_library():
  for name,(color,rough,metal,scale,bump_strength,bump_distance,fine_scale) in settings.items():
   make_pbr_surface(name,color,rough,metal,scale,bump_strength,bump_distance,fine_scale)
 
+def make_biome_texture_set(name, base_color, accent_color, roughness_value, noise_scale, output_dir, size=1024):
+ # Bake exportable PBR maps (albedo, tangent-space normal, roughness) rather than relying on Blender-only shader nodes.
+ import array
+ outdir=Path(output_dir)/"textures"/name
+ outdir.mkdir(parents=True,exist_ok=True)
+ albedo=bpy.data.images.new(name+"_Albedo",width=size,height=size,alpha=False,float_buffer=False)
+ normal=bpy.data.images.new(name+"_Normal",width=size,height=size,alpha=False,float_buffer=False)
+ rough=bpy.data.images.new(name+"_Roughness",width=size,height=size,alpha=False,float_buffer=False)
+ ap=array.array('f');npix=array.array('f');rp=array.array('f')
+ for py in range(size):
+  v=py/float(size-1)
+  for px in range(size):
+   u=px/float(size-1)
+   n1=_world_noise(u*noise_scale,v*noise_scale,1.0,11)
+   n2=_world_noise(u*noise_scale*2.7,v*noise_scale*2.7,1.0,37)
+   n3=_world_noise(u*noise_scale*7.5,v*noise_scale*7.5,1.0,73)
+   fine=math.sin(u*noise_scale*18.0+math.sin(v*noise_scale*5.5))*math.sin(v*noise_scale*20.0-u*noise_scale*3.0)
+   variation=max(.60,min(1.28,1.0+n1*.20+n2*.095+n3*.035+fine*.022))
+   rgb=[max(.0,min(1.0,c*variation)) for c in base_color]
+   mix=max(0.0,min(.78,(n2*.42+n3*.18+fine*.12+.33)))
+   rgb=[rgb[i]*(1-mix*.28)+accent_color[i]*(mix*.28) for i in range(3)]
+   # Height derivatives produce a packed OpenGL tangent-space normal (X+, Y+, Z+).
+   hx=(math.sin((u+1.0/size)*noise_scale*9.0+v*noise_scale*2.0)-math.sin((u-1.0/size)*noise_scale*9.0+v*noise_scale*2.0))*.5
+   hz=(math.cos((v+1.0/size)*noise_scale*8.0-u*noise_scale*3.0)-math.cos((v-1.0/size)*noise_scale*8.0-u*noise_scale*3.0))*.5
+   nx=-hx*.20;ny=-hz*.20;nz=1.0
+   length=math.sqrt(nx*nx+ny*ny+nz*nz);nx/=length;ny/=length;nz/=length
+   ap.extend((rgb[0],rgb[1],rgb[2],1.0))
+   npix.extend((nx*.5+.5,ny*.5+.5,nz*.5+.5,1.0))
+   rv=max(.12,min(.98,roughness_value+n1*.035+n2*.045+n3*.018))
+   rp.extend((rv,rv,rv,1.0))
+ for image,pixels,path in ((albedo,ap,outdir/(name+"_albedo.png")),(normal,npix,outdir/(name+"_normal.png")),(rough,rp,outdir/(name+"_roughness.png"))):
+  image.pixels.foreach_set(pixels);image.filepath_raw=str(path);image.file_format="PNG";image.save();image.pack()
+ log("Baked PBR textures for %s at %dx%d"%(name,size,size))
+ return outdir
+
+def generate_biome_texture_library(outdir):
+ # Palette is matched to the reference: cold slate/snow, deep canopy, ultramarine water, terracotta badlands.
+ sets=[
+  ("mountains",(0.24,0.29,0.32),(0.86,0.91,0.96),.82,2.5),
+  ("forest",(0.035,0.12,0.045),(0.16,0.28,0.09),.95,4.0),
+  ("ocean",(0.006,0.045,0.13),(0.015,0.14,0.23),.24,1.4),
+  ("shallow_water",(0.01,0.32,0.43),(0.06,0.80,0.84),.18,3.0),
+  ("desert",(0.62,0.22,0.085),(0.90,0.45,0.19),.91,3.8),
+  ("quarry",(0.30,0.22,0.16),(0.64,0.46,0.31),.88,4.7),
+  ("urban",(0.25,0.26,0.25),(0.48,0.45,0.39),.86,5.5),
+  ("asphalt",(0.055,0.062,0.067),(0.19,0.19,0.18),.92,8.0),
+  ("rooftops",(0.13,0.14,0.14),(0.35,0.30,0.24),.84,6.5),
+  ("grass",(0.11,0.24,0.08),(0.31,0.42,0.13),.97,6.0),
+ ]
+ generated=[]
+ for name,base,accent,roughness_value,scale in sets:
+  generated.append(make_biome_texture_set(name,base,accent,roughness_value,scale,outdir,1024))
+ return generated
+
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
  # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
@@ -884,6 +938,7 @@ def main():
  for c in list(bpy.data.collections):
   if c.name!=bpy.context.scene.collection.name:bpy.data.collections.remove(c)
  init_mats()
+ generate_biome_texture_library(OUT)
  M["forest_lit"]=mat("AS_forest_lit",(.085,.235,.095),.96,0)
  M["forest_deep"]=mat("AS_forest_deep",(.025,.105,.047),.98,0)
  M["hill_lit"]=mat("AS_hill_lit",(.29,.43,.13),.97,0)
