@@ -251,12 +251,29 @@ func _build_player() -> void:
 	player.name = "MobilePlayer"
 	player.set_script(player_script)
 	player.position = Vector3(-390, _height(-390, -320) + 3.0, -320)
-	add_child(player)
+	var collision := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.42
+	capsule.height = 1.8
+	collision.shape = capsule
+	collision.position.y = 0.9
+	player.add_child(collision)
+	var body_mesh := MeshInstance3D.new()
+	var body_capsule := CapsuleMesh.new()
+	body_capsule.radius = 0.42
+	body_capsule.height = 1.8
+	body_mesh.mesh = body_capsule
+	body_mesh.position.y = 0.9
+	var body_material := StandardMaterial3D.new()
+	body_material.albedo_color = Color(0.9, 0.43, 0.12)
+	body_mesh.material_override = body_material
+	player.add_child(body_mesh)
 	var camera := Camera3D.new()
 	camera.name = "Camera3D"
 	camera.position = Vector3(0, 1.55, 0)
 	camera.current = true
 	player.add_child(camera)
+	add_child(player)
 	var ui_script := load("res://scripts/mobile_hud.gd")
 	var hud := CanvasLayer.new()
 	hud.name = "MobileHUD"
