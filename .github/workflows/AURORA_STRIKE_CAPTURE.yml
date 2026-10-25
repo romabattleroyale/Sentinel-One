@@ -63,6 +63,8 @@ jobs:
           p.write_text(text, encoding="utf-8")
           PY
           dotnet build Godotite.csproj --configuration Release --nologo
+          # Godot caches the .NET assembly on editor startup; import with the assembly present.
+          test -s ".godot/mono/temp/bin/Release/Godotite.dll"
       - name: Import Blender GLB and build Godotite LODs
         working-directory: aurora-strike
         env:
@@ -71,6 +73,9 @@ jobs:
           set -euo pipefail
           # First import writes Godot's sidecar metadata; the plugin exposes its LOD option there.
           godot --headless --editor --build-solutions --path . --quit 2>&1 | tee /tmp/aurora-godot-import-first.log
+          # Build again through Godot's Mono project integration so Godotite's Native script finds the assembly.
+          dotnet build Godotite.csproj --configuration Release --nologo
+          test -s ".godot/mono/temp/bin/Release/Godotite.dll"
           IMPORT_FILE="world/generated_blender/AURORA_STRIKE_Master_Preview.glb.import"
           test -s "$IMPORT_FILE"
           python3 - <<'PY'
