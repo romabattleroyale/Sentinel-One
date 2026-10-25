@@ -118,27 +118,56 @@ func _box(parent: Node3D, node_name: String, size: Vector3, pos: Vector3, materi
 	return node
 
 func _build_environment() -> void:
+	# Vibrant Fortnite-like read: warm key light from the upper-left, controlled sky fill and high local contrast.
 	var world_env := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	env.sky = Sky.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color(0.055,0.19,0.43)
+	sky_material.sky_top_color = Color(0.025,0.11,0.30)
 	sky_material.sky_horizon_color = Color(0.47,0.67,0.83)
 	sky_material.ground_bottom_color = Color(0.16,0.21,0.24)
 	sky_material.ground_horizon_color = Color(0.44,0.51,0.54)
 	sky_material.sun_angle_max = 18.0
 	env.sky.sky_material = sky_material
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.48, 0.57, 0.68)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_color = Color(0.48, 0.56, 0.70)
+	env.ambient_light_energy = 0.62
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.05
+	env.tonemap_white = 1.15
+	env.ssr_enabled = true
+	env.ssr_max_steps = 48
+	env.ssr_fade_in = 0.12
+	env.ssr_fade_out = 0.28
+	env.ssao_enabled = true
+	env.ssao_radius = 3.2
+	env.ssao_intensity = 1.35
+	env.ssao_power = 1.15
+	env.ssao_detail = 0.35
+	env.ssao_horizon = 0.12
+	env.ssao_light_affect = 0.18
+	env.ssao_ao_channel_affect = 0.7
+	env.glow_enabled = true
+	env.glow_intensity = 0.22
+	env.glow_strength = 0.28
+	env.glow_bloom = 0.04
+	env.adjustment_enabled = true
+	env.adjustment_brightness = 1.03
+	env.adjustment_contrast = 1.18
+	env.adjustment_saturation = 1.2
 	world_env.environment = env
 	add_child(world_env)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-48, -28, 0)
-	sun.light_energy = 1.05
+	# Light originates from the upper-left of a north-up minimap.
+	sun.rotation_degrees = Vector3(-46, -32, 0)
+	sun.light_color = Color(1.0, 0.92, 0.80)
+	sun.light_energy = 1.35
 	sun.shadow_enabled = true
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 1250.0
+	sun.directional_shadow_blend_splits = true
+	sun.directional_shadow_fade_start = 0.78
 	add_child(sun)
 
 func _build_terrain() -> void:
