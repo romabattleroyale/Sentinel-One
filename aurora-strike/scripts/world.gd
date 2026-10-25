@@ -976,7 +976,16 @@ func _build_blender_map_architecture() -> void:
 			Vector3(1.2, 0.18, 220.0), Vector3(street_x + 4.1, 0.22, 0.0), local_concrete)
 
 	_build_industrial_complex()
-	_build_landmarks(true)
+	_build_civic_tower_only()
+
+func _build_civic_tower_only() -> void:
+	# Termini itself is supplied by the detailed Blender master GLB; don't draw the old box station over it.
+	var stone := _mat(Color(0.69,0.62,0.49))
+	var dark := _mat(Color(0.15,0.18,0.19),0.55,0.2)
+	_box(self,"Civic_Tower",Vector3(28,96,28),Vector3(-270,49,270),_mat(Color(0.48,0.53,0.55)),true)
+	for y in range(12,94,12):
+		_box(self,"Tower_Window_Band",Vector3(28.4,2,28.4),Vector3(-270,float(y),270),dark)
+	_box(self,"Tower_Cap",Vector3(34,3,34),Vector3(-270,98,270),stone)
 
 func _add_industrial_cylinder(parent: Node3D, node_name: String, radius: float, height: float, pos: Vector3, material: Material, rotation: Vector3 = Vector3.ZERO, collision: bool = false) -> MeshInstance3D:
 	var cylinder := CylinderMesh.new()
