@@ -133,8 +133,9 @@ func _build_environment() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.48, 0.56, 0.70)
 	env.ambient_light_energy = 0.62
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.05
+	# ACES tone mapping preserves highlight detail while supporting the vivid target-map palette.
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 1.12
 	env.tonemap_white = 1.15
 	env.ssr_enabled = true
 	env.ssr_max_steps = 48
@@ -142,27 +143,29 @@ func _build_environment() -> void:
 	env.ssr_fade_out = 0.28
 	env.ssao_enabled = true
 	env.ssao_radius = 3.2
-	env.ssao_intensity = 1.35
-	env.ssao_power = 1.15
+	env.ssao_intensity = 1.65
+	env.ssao_power = 1.28
 	env.ssao_detail = 0.35
 	env.ssao_horizon = 0.12
 	env.ssao_light_affect = 0.18
 	env.ssao_ao_channel_affect = 0.7
 	env.glow_enabled = true
-	env.glow_intensity = 0.22
-	env.glow_strength = 0.28
+	env.glow_intensity = 0.28
+	env.glow_strength = 0.38
 	env.glow_bloom = 0.04
 	env.adjustment_enabled = true
 	env.adjustment_brightness = 1.03
-	env.adjustment_contrast = 1.18
-	env.adjustment_saturation = 1.2
+	env.adjustment_contrast = 1.22
+	env.adjustment_saturation = 1.26
 	world_env.environment = env
 	add_child(world_env)
 	var sun := DirectionalLight3D.new()
 	# Light originates from the upper-left of a north-up minimap.
-	sun.rotation_degrees = Vector3(-46, -32, 0)
-	sun.light_color = Color(1.0, 0.92, 0.80)
-	sun.light_energy = 1.35
+	sun.rotation_degrees = Vector3(-52, -32, 0)
+	sun.light_color = Color(1.0, 0.90, 0.76)
+	sun.light_energy = 1.5
+	sun.shadow_bias = 0.035
+	sun.shadow_normal_bias = 1.15
 	sun.shadow_enabled = true
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_max_distance = 1250.0
