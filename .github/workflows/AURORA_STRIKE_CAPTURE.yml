@@ -47,17 +47,16 @@ jobs:
           from pathlib import Path
           p = Path("project.godot")
           text = p.read_text(encoding="utf-8")
-          section = '[editor_plugins]\nenabled=PackedStringArray("res://addons/godotite/plugin.cfg")'
-          if "[editor_plugins]" in text:
-              prefix, rest = text.split("[editor_plugins]", 1)
-              next_section = rest.find("\\n[")
-              if next_section >= 0:
-                  rest = rest[next_section+1:]
-                  text = prefix + section + "\\n\\n[" + rest
-              else:
-                  text = prefix + section + "\\n"
+          import re
+          section = '[editor_plugins]'
+          plugin_line = 'enabled=PackedStringArray("res://addons/godotite/plugin.cfg")'
+          pattern = r"(?ms)^\\[editor_plugins\\]\\s*$.*?(?=^\\[|\\Z)"
+          if re.search(r"(?m)^\\[editor_plugins\\]\\s*$", text):
+              text, count = re.subn(pattern, section + "\\n" + plugin_line + "\\n\\n", text)
+              if count != 1:
+                  raise SystemExit("Could not update Godotite plugin section")
           else:
-              text = text.rstrip() + "\\n\\n" + section + "\\n"
+              text = text.rstrip() + "\\n\\n" + section + "\\n" + plugin_line + "\\n"
           p.write_text(text, encoding="utf-8")
           PY
           dotnet build Godotite.csproj --configuration Release --nologo
