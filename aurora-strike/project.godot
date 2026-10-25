@@ -13,7 +13,7 @@ window/stretch/mode="canvas_items"
 window/handheld/orientation=1
 
 [rendering]
-renderer/rendering_method="mobile"
+renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
 textures/default_filters/use_nearest_mipmap_filter=false
 environment/defaults/default_clear_color=Color(0.48, 0.68, 0.82, 1)
