@@ -352,7 +352,17 @@ def build_water(c):
  pts=[]
  for j in range(181):
   z=-535+j*8;pts.append((river_center_x(z),z))
- ribbon("River_Shore_Bed",pts,58,.6,M["sand"],c);ribbon("River_Water",pts,43,4.0,M["water"],c)
+ # Narrow the channel so it reads as a river, not a broad blue road, from the overhead camera.
+ ribbon("River_Shore_Bed",pts,42,.35,M["soil"],c);ribbon("River_Water",pts,29,2.6,M["water"],c)
+ # Small, broken shallow-water margins soften the channel edge without forming a continuous bright outline.
+ for side in (-1,1):
+  bank_pts=[]
+  for j,(rx,rz) in enumerate(pts):
+   if j%3==0:
+    prev=pts[max(0,j-1)];nxt=pts[min(len(pts)-1,j+1)]
+    dx,dz=nxt[0]-prev[0],nxt[1]-prev[1];ln=math.hypot(dx,dz) or 1
+    bank_pts.append((rx-side*18*(-dz/ln),rz-side*18*(dx/ln)))
+  if len(bank_pts)>2:ribbon("River_Shallow_Bank_%s"%side,bank_pts,2.8,1.1,M["shallow"],c)
 def paths_between(c):
  roads=[
   # Main transport spine through the port, central city, Termini and residential district.
@@ -465,10 +475,15 @@ def make_poi(poi,root):
    base_y=height(x+dx,z+dz)
    faceted_peak(label+"_AlpinePeak_"+str(i),x+dx,z+dz,base_y,r,h,c,float(i)*1.7)
  elif kind in ("forest","hills"):
-  for i in range(110 if kind=="forest" else 65):
-   dx=random.uniform(-150,150);dz=random.uniform(-120,120);r=random.uniform(2.5,6);h=random.uniform(7,16)
-   cn("TreeTrunk"+str(i),dx,h*.22,dz,r*.2,h*.5,M["wood"],6,r*.12)
-   cn("TreeCrown"+str(i),dx,h*.68,dz,r,h*.7,M["forest"] if kind=="forest" else M["hill"],7,.15)
+  # Layered, irregular crowns and mixed tree heights give the biome a fuller silhouette at gameplay distance.
+  tree_count=180 if kind=="forest" else 95
+  for i in range(tree_count):
+   dx=random.uniform(-155,155);dz=random.uniform(-128,128)
+   r=random.uniform(2.8,6.8);h=random.uniform(8,18)
+   ma=M["forest"] if kind=="forest" else M["hill"]
+   cn("TreeTrunk"+str(i),dx,h*.20,dz,r*.17,h*.48,M["wood"],7,r*.10)
+   cn("TreeCrown_Lower"+str(i),dx,h*.52,dz,r,h*.58,ma,9,r*.22)
+   cn("TreeCrown_Upper"+str(i),dx+random.uniform(-.8,.8),h*.78,dz+random.uniform(-.8,.8),r*.68,h*.48,ma,8,.12)
  elif kind=="lake":
   b("Molo",0,2,122,6,.8,62,M["wood"])
   for i in range(8):cube(label+"_DockPlank"+str(i),(x+(-7+i*2),y+2,z+115),(1,.6,9),M["wood"],c)
