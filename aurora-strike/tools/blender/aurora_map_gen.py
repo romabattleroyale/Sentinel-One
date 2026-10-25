@@ -222,19 +222,50 @@ def make_pbr_surface(name, base_color, roughness=.82, metallic=0.0, noise_scale=
  bs.inputs["Base Color"].default_value=(*base_color,1)
  bs.inputs["Roughness"].default_value=roughness
  bs.inputs["Metallic"].default_value=metallic
- # Keep the shader glTF-exportable: Blender procedural Noise/ColorRamp/Bump graphs are
- # not portable to Godot's standard PBR materials and were producing white roads/water.
- # Bake complex biome variation into the terrain albedo texture; use stable PBR base colors
- # for modular geometry until packed tileable texture maps are authored for these materials.
- bs.inputs["Base Color"].default_value=(*base_color,1)
- bs.inputs["Roughness"].default_value=roughness
- bs.inputs["Metallic"].default_value=metallic
+ # Baked microdetail survives glTF export; procedural nodes alone don't travel reliably into Godot.
+ texcoord=nodes.new("ShaderNodeTexCoord")
+ mapping=nodes.new("ShaderNodeVectorMath");mapping.operation="SCALE";mapping.inputs[3].default_value=1.0
+ links.new(texcoord.outputs["Generated"],mapping.inputs[0])
+ noise=nodes.new("ShaderNodeTexNoise")
+ noise.inputs["Scale"].default_value=noise_scale
+ noise.inputs["Detail"].default_value=4.0
+ noise.inputs["Roughness"].default_value=.72
+ links.new(mapping.outputs["Vector"],noise.inputs["Vector"])
+ ramp=nodes.new("ShaderNodeValToRGB")
+ dark=tuple(max(0.0,v*.68) for v in base_color)
+ light=tuple(min(1.0,v*1.22+.018) for v in base_color)
+ ramp.color_ramp.elements[0].position=.22
+ ramp.color_ramp.elements[0].color=(*dark,1)
+ ramp.color_ramp.elements[1].position=.78
+ ramp.color_ramp.elements[1].color=(*light,1)
+ links.new(noise.outputs["Fac"],ramp.inputs["Fac"])
+ links.new(ramp.outputs["Color"],bs.inputs["Base Color"])
+ rough_noise=nodes.new("ShaderNodeTexNoise")
+ rough_noise.inputs["Scale"].default_value=max(2.0,noise_scale*.55)
+ rough_noise.inputs["Detail"].default_value=3.0
+ links.new(mapping.outputs["Vector"],rough_noise.inputs["Vector"])
+ rough_ramp=nodes.new("ShaderNodeMapRange")
+ rough_ramp.inputs["From Min"].default_value=0.0
+ rough_ramp.inputs["From Max"].default_value=1.0
+ rough_ramp.inputs["To Min"].default_value=max(.08,roughness-.13)
+ rough_ramp.inputs["To Max"].default_value=min(1.0,roughness+.12)
+ links.new(rough_noise.outputs["Fac"],rough_ramp.inputs["Value"])
+ links.new(rough_ramp.outputs["Result"],bs.inputs["Roughness"])
+ micro=nodes.new("ShaderNodeTexNoise")
+ micro.inputs["Scale"].default_value=fine_scale
+ micro.inputs["Detail"].default_value=3.0
+ micro.inputs["Roughness"].default_value=.8
+ links.new(mapping.outputs["Vector"],micro.inputs["Vector"])
+ bump=nodes.new("ShaderNodeBump")
+ bump.inputs["Strength"].default_value=bump_strength
+ bump.inputs["Distance"].default_value=bump_distance
+ links.new(micro.outputs["Fac"],bump.inputs["Height"])
+ links.new(bump.outputs["Normal"],bs.inputs["Normal"])
  links.new(bs.outputs["BSDF"],out.inputs["Surface"])
  return material
 
 def install_realistic_material_library():
  settings={
-  # World-space noise scales: broad breakup roughly 8–30 m, fine surface detail roughly 0.4–1.2 m.
   "AS_asphalt_PBR":((.075,.082,.085),.91,.02,.075,.12,.025,1.7),
   "AS_concrete_PBR":((.42,.43,.41),.87,0,.09,.18,.035,2.0),
   "AS_plaster_PBR":((.62,.55,.44),.88,0,.12,.14,.022,2.2),
@@ -242,14 +273,19 @@ def install_realistic_material_library():
   "AS_roof_PBR":((.105,.12,.125),.84,.08,.085,.17,.022,2.0),
   "AS_metal_PBR":((.22,.25,.26),.43,.72,.065,.09,.012,2.4),
   "AS_wood_PBR":((.24,.13,.065),.79,0,.16,.13,.018,1.6),
-  "AS_sand_PBR":((.65,.49,.30),.94,0,.11,.20,.045,2.0),
+  "AS_sand_PBR":((.72,.37,.16),.93,0,.11,.22,.05,2.0),
   "AS_soil_PBR":((.22,.15,.095),.97,0,.14,.22,.05,1.8),
   "AS_glass_PBR":((.055,.16,.21),.20,.16,.06,.035,.004,2.2),
-  "AS_rust_PBR":((.33,.105,.055),.83,.18,.12,.19,.03,2.0),
-  "AS_water_PBR":((.008,.075,.14),.24,.04,.07,.05,.006,1.8)
+  "AS_rust_PBR":((.43,.115,.045),.84,.18,.12,.19,.03,2.0),
+  "AS_water_PBR":((.006,.055,.14),.19,.04,.07,.045,.006,1.8),
+  "AS_snow_PBR":((.88,.94,1.0),.76,0,.09,.24,.045,2.4),
+  "AS_rock_PBR":((.19,.22,.24),.91,0,.085,.34,.10,2.8),
+  "AS_forest_floor_PBR":((.035,.12,.048),.97,0,.10,.20,.035,2.0),
+  "AS_desert_strata_PBR":((.72,.24,.09),.94,0,.09,.30,.065,2.5)
  }
  for name,(color,rough,metal,scale,bump_strength,bump_distance,fine_scale) in settings.items():
   make_pbr_surface(name,color,rough,metal,scale,bump_strength,bump_distance,fine_scale)
+
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
  # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
