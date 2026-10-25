@@ -702,12 +702,12 @@ def create_overview(root):
  bpy.ops.object.camera_add(location=(0,2600,0),rotation=(math.radians(-90),0,0));cam=bpy.context.object;cam.name="AS_Overview_Camera";cam.data.type="ORTHO";cam.data.ortho_scale=2250;cam.data.clip_start=.1;cam.data.clip_end=10000;scene.camera=cam;relink(cam,root)
  try: scene.render.engine="BLENDER_EEVEE_NEXT"
  except: scene.render.engine="BLENDER_EEVEE"
- scene.render.resolution_x=1600;scene.render.resolution_y=1600;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
+ scene.render.resolution_x=800;scene.render.resolution_y=800;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
  try:
-  scene.eevee.taa_render_samples=96
+  scene.eevee.taa_render_samples=12
   scene.eevee.use_gtao=True
-  scene.eevee.gtao_distance=18.0
-  scene.eevee.gtao_factor=1.28
+  scene.eevee.gtao_distance=10.0
+  scene.eevee.gtao_factor=1.05
  except: pass
  try:
   scene.view_settings.view_transform="AgX"
@@ -718,7 +718,7 @@ def create_overview(root):
  try:
   scene.render.image_settings.color_mode="RGBA"
   scene.render.film_transparent=False
-  scene.eevee.taa_render_samples=64
+  scene.eevee.taa_render_samples=12
  except:pass
  return cam
 def glb_export(objects,path):
@@ -864,7 +864,7 @@ def main():
  # Render last, after the source, tiles, POIs, master GLB, and manifest have been saved.
  scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")
  try:
-  log("Rendering 1600x1600 overview PNG")
+  log("Rendering fast 800x800 overview PNG (12 samples)")
   bpy.ops.render.render(write_still=True)
   overview=OUT/"preview"/"aurora_strike_overview.png"
   if overview.exists() and overview.stat().st_size>10000: log("Overview render complete: %s bytes"%overview.stat().st_size)
