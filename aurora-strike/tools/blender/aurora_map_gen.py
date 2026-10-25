@@ -69,6 +69,9 @@ def init_mats():
  colors={"grass":((.22,.38,.15),.96,0),"forest":((.045,.16,.075),.95,0),"hill":((.33,.45,.19),.98,0),"snow":((.88,.93,.97),.77,0),"rock":((.28,.30,.31),.9,0),"soil":((.28,.20,.12),.98,0),"sand":((.79,.66,.44),.98,0),"red":((.64,.25,.13),.97,0),"asphalt":((.11,.125,.13),.9,0),"roof":((.18,.20,.20),.92,0),"concrete":((.48,.49,.46),.91,0),"plaster":((.67,.58,.45),.92,0),"brick":((.47,.24,.17),.9,0),"glass":((.07,.22,.3),.28,.2),"metal":((.25,.29,.3),.48,.45),"wood":((.3,.18,.09),.93,0),"water":((.008,.075,.14),.24,.04),"shallow":((.018,.13,.17),.32,0),"deep":((.003,.018,.045),.28,.02),"yellow":((.92,.73,.24),.75,0),"crop":((.48,.43,.19),.94,0),"rust":((.47,.18,.1),.8,.18),"white":((.95,.94,.86),.78,0)}
  for k,(c,r,me) in colors.items(): M[k]=mat("AS_"+k,c,r,me)
  install_realistic_material_library()
+ # Route actual scene geometry through the new PBR shaders rather than leaving them as unused library entries.
+ for key in ("asphalt","concrete","plaster","brick","roof","metal","wood","sand","soil","glass","rust","water"):
+  M[key]=bpy.data.materials.get("AS_"+key+"_PBR") or M[key]
 def cube(name,loc,dims,ma,c,bevel=0):
  bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object;o.name=name;o.dimensions=dims;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);relink(o,c);o.data.materials.append(ma)
  if bevel:
