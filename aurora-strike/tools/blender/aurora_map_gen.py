@@ -935,12 +935,12 @@ def make_rock_field(name, bounds, count, kind, parent):
  return obj
 
 def create_overview(root):
- scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.20,.31,.42,1);world.node_tree.nodes["Background"].inputs["Strength"].default_value=.75
- bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=4.0;sun.data.use_shadow=True;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
+ scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.20,.31,.42,1);world.node_tree.nodes["Background"].inputs["Strength"].default_value=.95
+ bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=6.0;sun.data.use_shadow=True;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
  bpy.ops.object.camera_add(location=(0,2600,0),rotation=(math.radians(-90),0,0));cam=bpy.context.object;cam.name="AS_Overview_Camera";cam.data.type="ORTHO";cam.data.ortho_scale=2250;cam.data.clip_start=.1;cam.data.clip_end=10000;scene.camera=cam;relink(cam,root)
  try: scene.render.engine="BLENDER_EEVEE_NEXT"
  except: scene.render.engine="BLENDER_EEVEE"
- scene.render.resolution_x=800;scene.render.resolution_y=800;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
+ scene.render.resolution_x=1024;scene.render.resolution_y=1024;scene.render.resolution_percentage=100;scene.render.image_settings.file_format="PNG"
  try:
   scene.eevee.taa_render_samples=12
   scene.eevee.use_gtao=True
@@ -950,7 +950,7 @@ def create_overview(root):
  try:
   scene.view_settings.view_transform="AgX"
   scene.view_settings.look="AgX - Medium High Contrast"
-  scene.view_settings.exposure=.6
+  scene.view_settings.exposure=1.25
   scene.view_settings.gamma=1.0
  except:pass
  try:
