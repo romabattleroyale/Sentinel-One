@@ -342,6 +342,10 @@ def generate_biome_texture_library(outdir):
 
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
+ terrain_maps=make_biome_texture_set("terrain_master",(.18,.31,.12),(.72,.48,.27),.96,5.2,OUT,2048)
+ terrain_albedo=bpy.data.images.load(str(terrain_maps/"terrain_master_albedo.png"),check_existing=True)
+ terrain_normal=bpy.data.images.load(str(terrain_maps/"terrain_master_normal.png"),check_existing=True)
+ terrain_roughness=bpy.data.images.load(str(terrain_maps/"terrain_master_roughness.png"),check_existing=True)
  # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
  resolution=1536
  image=bpy.data.images.new("AURORA_STRIKE_Biome_Albedo",width=resolution,height=resolution,alpha=True,float_buffer=False)
@@ -428,6 +432,9 @@ def make_terrain(c):
  normal_image.pixels.foreach_set(normal_pixels);normal_image.pack()
  rough_image.pixels.foreach_set(rough_pixels);rough_image.pack()
  texture_dir=OUT/"textures";texture_dir.mkdir(parents=True,exist_ok=True)
+ # Save the final biome-set textures to disk as explicit, Godot-importable PNG assets.
+ for name,img in (("terrain_master_albedo.png",image),("terrain_master_normal.png",normal_image),("terrain_master_roughness.png",rough_image)):
+  img.filepath_raw=str(texture_dir/name);img.file_format="PNG";img.save()
  for img,filename in ((normal_image,"terrain_normal.png"),(rough_image,"terrain_roughness.png")):
   img.filepath_raw=str(texture_dir/filename);img.file_format="PNG";img.save()
  normal_tex=nodes.new("ShaderNodeTexImage");normal_tex.image=normal_image;normal_tex.name="Baked_Terrain_Normal"
