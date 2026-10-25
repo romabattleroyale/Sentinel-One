@@ -650,11 +650,29 @@ def build_water(c):
   cube("Port_Access_Pier_Pylon_%02d"%pier_idx,(pier_x,1.25,-250.0),(1.5,3.8,1.5),M["metal"],c,.1)
   for side in (-1.0,1.0):
    cube("Port_Access_Pier_Rail_%02d_%d"%(pier_idx,int(side)),(pier_x,4.85,-250.0+side*6.8),(1.2,1.5,.32),M["metal"],c,.06)
- # Real internal lake surface with irregular shoreline.
- cx,cz=-94,-633;v=[(cx,31,cz)];n=64
+ # Internal lake with a plausible basin height, plus a sloped cyan/sand shelf around its irregular shoreline.
+ cx,cz=-94,-633;water_y=4.8;n=64
+ lake_ring=[]
+ v=[(cx,water_y,cz)]
  for i in range(n):
-  a=2*math.pi*i/n;r=1+.08*math.sin(a*3)+.04*math.cos(a*7);v.append((cx+150*r*math.cos(a),31,cz+112*r*math.sin(a)))
+  a=2*math.pi*i/n
+  radial=1+.08*math.sin(a*3)+.04*math.cos(a*7)
+  lake_ring.append((cx+150*radial*math.cos(a),cz+112*radial*math.sin(a),radial))
+  v.append((lake_ring[-1][0],water_y,lake_ring[-1][1]))
  mesh("Lago_Azzurro_Water",v,[(0,i+1,(i+1)%n+1) for i in range(n)],c,[M["water"]])
+ shore_v=[];shore_f=[];shore_idx=[]
+ for i,(ix,iz,radial) in enumerate(lake_ring):
+  angle=2*math.pi*i/n
+  ox=cx+186*radial*math.cos(angle);oz=cz+139*radial*math.sin(angle)
+  oy=height(ox,oz)+.18
+  base=len(shore_v)
+  shore_v.extend([(ix,water_y-.08,iz),(ox,oy,oz)])
+ for i in range(n):
+  nxt=(i+1)%n
+  a=i*2;b=a+1;d=nxt*2;e=d+1
+  shore_f.extend([(a,d,b),(b,d,e)])
+  shore_idx.extend([1 if i%7==0 else 0,1 if i%7==0 else 0])
+ mesh("Lago_Azzurro_Shallow_Ring",shore_v,shore_f,c,[M["shallow"],M["sand"]],shore_idx)
  # Curving outlet river heads south.
  pts=[]
  for j in range(181):
