@@ -10,7 +10,7 @@ from mathutils import Vector
 OUT = Path(os.environ.get("AURORA_OUTPUT_DIR", str(Path(__file__).resolve().parent / "generated")))
 SEED = 271023
 SIZE, TILE, N = 2000.0, 250.0, 8
-STEP = 2.0  # 2 m terrain sampling: 56% more terrain triangles than 2.5 m, with LOD planned for distant views.
+STEP = 1.5  # Heavy geometry test: 1.5 m terrain sampling, about 1.78x the triangles of the 2 m grid; Godotite pilot follows.
 random.seed(SEED)
 POIS = [
 ("01_Monte_Nevoso","Monte Nevoso",-531,-719,"snow"),
@@ -131,11 +131,11 @@ def height(x,z):
                   gauss(x,z,-655,-555,145,150),gauss(x,z,-755,-745,145,170),
                   gauss(x,z,-570,-825,160,120),gauss(x,z,-455,-650,130,155),
                   gauss(x,z,-700,-820,130,115))
- mountain_mask=max(0.0,min(1.0,mountain_mask*1.55))
+ mountain_mask=max(0.0,min(1.0,mountain_mask*1.75))
  ridge_fine=abs(math.sin(x*.071+1.7*math.sin(z*.043)) * math.sin(z*.083-x*.029))
  ridge_mid=abs(math.sin(x*.031+1.2*math.sin(z*.019)) * math.sin(z*.037-x*.014))
- fractured=(ridge_fine*3.2+ridge_mid*5.5-2.0)
- gullies=(math.sin(x*.16+math.sin(z*.081)*1.8)+math.cos(z*.145-x*.053))*1.15
+ fractured=(ridge_fine*5.0+ridge_mid*8.0-3.0)
+ gullies=(math.sin(x*.16+math.sin(z*.081)*1.8)+math.cos(z*.145-x*.053))*1.75
  h+=(fractured+gullies)*mountain_mask*smooth(48,100,h)*relief_mask
  # Fine erosion detail across hills, quarry and desert escarpments without noisy flat city pads.
  erosion_detail=(math.sin(x*.19+math.sin(z*.071))*math.cos(z*.17-x*.063)
@@ -181,7 +181,7 @@ def mesh(name,verts,faces,c,mats,indices=None,colors=None):
   except Exception as e:log("Vertex color fallback: "+str(e))
  return o
 def faceted_peak(name,x,z,base_y,radius,h,c,phase=0.0):
- segments=16
+ segments=24
  verts=[];faces=[];indices=[]
  ring_specs=[(1.0,0.0,0.0,0.0),(.62,.52,.055*radius*math.cos(phase),.055*radius*math.sin(phase)),(.28,.84,.13*radius*math.cos(phase+0.8),.13*radius*math.sin(phase+0.8))]
  for ring_id,(radius_factor,height_factor,ox,oz) in enumerate(ring_specs):
@@ -253,7 +253,7 @@ def install_realistic_material_library():
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
  # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
- resolution=1024
+ resolution=1536
  image=bpy.data.images.new("AURORA_STRIKE_Biome_Albedo",width=resolution,height=resolution,alpha=True,float_buffer=False)
  pixels=[]
  for py in range(resolution):
