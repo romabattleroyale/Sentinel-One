@@ -10,7 +10,7 @@ from mathutils import Vector
 OUT = Path(os.environ.get("AURORA_OUTPUT_DIR", str(Path(__file__).resolve().parent / "generated")))
 SEED = 271023
 SIZE, TILE, N = 2000.0, 250.0, 8
-STEP = 2.5  # 2.5 m terrain sampling: 4x the grid density, sharper ridges/coast and smoother gameplay silhouettes.
+STEP = 2.0  # 2 m terrain sampling: 56% more terrain triangles than 2.5 m, with LOD planned for distant views.
 random.seed(SEED)
 POIS = [
 ("01_Monte_Nevoso","Monte Nevoso",-531,-719,"snow"),
@@ -328,11 +328,25 @@ def make_terrain(c):
  bump=nodes.new("ShaderNodeBump");bump.inputs["Strength"].default_value=.16;bump.inputs["Distance"].default_value=.45
  links.new(noise.outputs["Fac"],bump.inputs["Height"]);links.new(bump.outputs["Normal"],bs.inputs["Normal"])
  verts=[];uvs=[];lookup={};faces=[];steps=int(SIZE/STEP)+1
+ # Scanline rasterization: intersect the coastline once per terrain row, rather than
+ # running a full point-in-polygon test (hundreds of coast segments) for every vertex.
+ # This makes denser terrain practical without changing the authored coastline.
  for iz in range(steps):
   z=-1000+iz*STEP
-  for ix in range(steps):
-   x=-1000+ix*STEP
-   if inside(x,z):
+  crossings=[]
+  prev_x,prev_z=COAST[-1]
+  for curr_x,curr_z in COAST:
+   if (curr_z>z)!=(prev_z>z):
+    crossings.append(curr_x+(z-curr_z)*(prev_x-curr_x)/(prev_z-curr_z))
+   prev_x,prev_z=curr_x,curr_z
+  crossings.sort()
+  ix=0
+  for span in range(0,len(crossings)-1,2):
+   start_x,end_x=crossings[span],crossings[span+1]
+   start_ix=max(0,int(math.ceil((start_x+1000)/STEP)))
+   end_ix=min(steps-1,int(math.floor((end_x+1000)/STEP)))
+   for ix in range(start_ix,end_ix+1):
+    x=-1000+ix*STEP
     lookup[(ix,iz)]=len(verts);verts.append((x,height(x,z),z));uvs.append(((x+1000)/2000,(z+1000)/2000))
  for (ix,iz),a in lookup.items():
   if (ix+1,iz) in lookup and (ix,iz+1) in lookup and (ix+1,iz+1) in lookup:
