@@ -865,6 +865,7 @@ def main():
   ("Bosco_Lago_Nord",-240,-475,420,M["forest"])
  ]:
   v=[];f=[];mi=[]
+  palette=[ma,M["forest_lit"],M["forest_deep"]] if name not in ("Colline_Verdi","Macchia_Centrale") else [ma,M["hill_lit"],M["forest"]]
   for k in range(count):
    x=cx+random.uniform(-190,190);z=cz+random.uniform(-145,145)
    if not inside(x,z):continue
@@ -910,7 +911,6 @@ def main():
      f.append((ring_base+side,ring_base+(side+1)%side_count,tip));mi.append(1+((foliage_base-1+tier)%len(palette)))
      if tier==0:
       f.append((base+4,ring_base+side,ring_base+(side+1)%side_count));mi.append(foliage_base)
-  palette=[ma,M["forest_lit"],M["forest_deep"]] if name not in ("Colline_Verdi","Macchia_Centrale") else [ma,M["hill_lit"],M["forest"]]
   tree=mesh(name+"_TreeBatch",v,f,veg,[M["wood"]]+palette,mi)
   for poly in tree.data.polygons: poly.use_smooth=False
  # Batched multi-biome boulders improve alpine, quarry and red-desert silhouettes.
