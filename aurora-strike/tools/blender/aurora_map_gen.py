@@ -181,7 +181,7 @@ def mesh(name,verts,faces,c,mats,indices=None,colors=None):
   except Exception as e:log("Vertex color fallback: "+str(e))
  return o
 def faceted_peak(name,x,z,base_y,radius,h,c,phase=0.0):
- segments=9
+ segments=16
  verts=[];faces=[];indices=[]
  ring_specs=[(1.0,0.0,0.0,0.0),(.62,.52,.055*radius*math.cos(phase),.055*radius*math.sin(phase)),(.28,.84,.13*radius*math.cos(phase+0.8),.13*radius*math.sin(phase+0.8))]
  for ring_id,(radius_factor,height_factor,ox,oz) in enumerate(ring_specs):
@@ -568,9 +568,9 @@ def make_poi(poi,root):
    ma=M["forest"] if kind=="forest" else M["hill"]
    # More faceted, multi-tier tree silhouettes: break the repeated single-cone look from map height.
    cn("TreeTrunk"+str(i),dx,h*.20,dz,r*.17,h*.48,M["wood"],9,r*.10)
-   cn("TreeCrown_Lower"+str(i),dx,h*.47,dz,r,h*.58,ma,12,r*.20)
-   cn("TreeCrown_Middle"+str(i),dx+random.uniform(-.65,.65),h*.66,dz+random.uniform(-.65,.65),r*.78,h*.52,ma,11,r*.15)
-   cn("TreeCrown_Upper"+str(i),dx+random.uniform(-.9,.9),h*.83,dz+random.uniform(-.9,.9),r*.56,h*.43,ma,10,.10)
+   cn("TreeCrown_Lower"+str(i),dx,h*.47,dz,r,h*.58,ma,16,r*.20)
+   cn("TreeCrown_Middle"+str(i),dx+random.uniform(-.65,.65),h*.66,dz+random.uniform(-.65,.65),r*.78,h*.52,ma,14,r*.15)
+   cn("TreeCrown_Upper"+str(i),dx+random.uniform(-.9,.9),h*.83,dz+random.uniform(-.9,.9),r*.56,h*.43,ma,12,.10)
  elif kind=="lake":
   b("Molo",0,2,122,6,.8,62,M["wood"])
   for i in range(8):cube(label+"_DockPlank"+str(i),(x+(-7+i*2),y+2,z+115),(1,.6,9),M["wood"],c)
