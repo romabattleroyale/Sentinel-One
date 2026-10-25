@@ -66,7 +66,7 @@ def mat(name,color,rough=.85,metal=0):
  return m
 M={}
 def init_mats():
- colors={"grass":((.22,.38,.15),.96,0),"forest":((.045,.16,.075),.95,0),"hill":((.33,.45,.19),.98,0),"snow":((.88,.93,.97),.77,0),"rock":((.28,.30,.31),.9,0),"soil":((.28,.20,.12),.98,0),"sand":((.79,.66,.44),.98,0),"red":((.64,.25,.13),.97,0),"asphalt":((.11,.125,.13),.9,0),"roof":((.18,.20,.20),.92,0),"concrete":((.48,.49,.46),.91,0),"plaster":((.67,.58,.45),.92,0),"brick":((.47,.24,.17),.9,0),"glass":((.07,.22,.3),.28,.2),"metal":((.25,.29,.3),.48,.45),"wood":((.3,.18,.09),.93,0),"water":((.012,.105,.22),.24,.04),"shallow":((.025,.24,.30),.32,0),"deep":((.006,.035,.085),.28,.02),"yellow":((.92,.73,.24),.75,0),"crop":((.48,.43,.19),.94,0),"rust":((.47,.18,.1),.8,.18),"white":((.95,.94,.86),.78,0)}
+ colors={"grass":((.22,.38,.15),.96,0),"forest":((.045,.16,.075),.95,0),"hill":((.33,.45,.19),.98,0),"snow":((.88,.93,.97),.77,0),"rock":((.28,.30,.31),.9,0),"soil":((.28,.20,.12),.98,0),"sand":((.79,.66,.44),.98,0),"red":((.64,.25,.13),.97,0),"asphalt":((.11,.125,.13),.9,0),"roof":((.18,.20,.20),.92,0),"concrete":((.48,.49,.46),.91,0),"plaster":((.67,.58,.45),.92,0),"brick":((.47,.24,.17),.9,0),"glass":((.07,.22,.3),.28,.2),"metal":((.25,.29,.3),.48,.45),"wood":((.3,.18,.09),.93,0),"water":((.008,.075,.14),.24,.04),"shallow":((.018,.13,.17),.32,0),"deep":((.003,.018,.045),.28,.02),"yellow":((.92,.73,.24),.75,0),"crop":((.48,.43,.19),.94,0),"rust":((.47,.18,.1),.8,.18),"white":((.95,.94,.86),.78,0)}
  for k,(c,r,me) in colors.items(): M[k]=mat("AS_"+k,c,r,me)
 def cube(name,loc,dims,ma,c,bevel=0):
  bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object;o.name=name;o.dimensions=dims;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);relink(o,c);o.data.materials.append(ma)
@@ -313,7 +313,8 @@ def build_water(c):
    inner_y=3.2;shore_y=1.1
   else:
    inner_y=4.7+.7*math.sin(x*.025+z*.013);shore_y=1.8+.4*math.cos(x*.021-z*.017)
-  v.extend([(x*.965,inner_y,z*.965),(x,shore_y,z),(x*1.035,-.15,z*1.035)])
+  # Restrained shore bands: a narrow sand shelf and dark teal shallows avoid the oversized neon-cyan outline.
+  v.extend([(x*.984,inner_y,z*.984),(x,shore_y,z),(x*1.018,-.15,z*1.018)])
  for i in range(len(COAST)):
   n=(i+1)%len(COAST);a=i*3;b=n*3
   f.extend([(a,b,a+1),(a+1,b,b+1)]);idx.extend([1,1])
@@ -322,7 +323,7 @@ def build_water(c):
  # Thin shoreline foam traces the coastline without a repeated rectangular decal.
  foam_v=[];foam_f=[]
  for x,z in COAST:
-  foam_v.extend([(x*.998,1.35,z*.998),(x*1.006,1.18,z*1.006)])
+  foam_v.extend([(x*.999,1.27,z*.999),(x*1.002,1.22,z*1.002)])
  for i in range(len(COAST)):
   a=i*2;b=((i+1)%len(COAST))*2
   foam_f.extend([(a,b,a+1),(a+1,b,b+1)])
