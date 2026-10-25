@@ -11,6 +11,7 @@ OUT = Path(os.environ.get("AURORA_OUTPUT_DIR", str(Path(__file__).resolve().pare
 SEED = 271023
 SIZE, TILE, N = 2000.0, 250.0, 8
 STEP = 10.0  # denser editable overview terrain; exported gameplay tiles retain shared 12.5m samples
+FAST_PREVIEW = os.environ.get("AURORA_FAST_PREVIEW", "0") == "1"
 random.seed(SEED)
 POIS = [
 ("01_Monte_Nevoso","Monte Nevoso",-531,-719,"snow"),
@@ -254,7 +255,7 @@ def apply_baked_biome_texture(tile, x0, z0, tile_type):
  # Texture colour varies with biome, altitude, exposed slope, and fine mineral/soil variation.
  if tile_type != "terrain_tile":
   return None
- resolution=128
+ resolution=32 if FAST_PREVIEW else 128
  img=bpy.data.images.new("AS_TerrainAlbedo_%s"%tile.name,width=resolution,height=resolution,alpha=True)
  pixels=[]
  for py in range(resolution):
@@ -369,19 +370,22 @@ def main():
  with open(manifest,"w",newline="",encoding="utf-8") as f:
   w=csv.writer(f);w.writerow(["type","id","file","tile_x","tile_z","origin_x","origin_z","max_x","max_z","provenance"]);w.writerows(rows)
  log("Manifest written: %d assets"%len(rows))
- try:
-  log("Exporting master preview GLB")
-  glb_export([o for o in bpy.context.scene.objects if o.type in {"MESH","CURVE"}],OUT/"AURORA_STRIKE_Master_Preview.glb")
- except Exception as e:log("Master GLB export warning: "+str(e))
- # Render is last, after all source/GLB/manifest outputs have been safely written.
- scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")
- try:
-  log("Rendering 1600x1600 overview PNG")
-  bpy.ops.render.render(write_still=True)
-  overview=OUT/"preview"/"aurora_strike_overview.png"
-  if overview.exists() and overview.stat().st_size>10000: log("Overview render complete: %s bytes"%overview.stat().st_size)
-  else: log("Overview render returned without a usable image")
- except Exception as e:log("Overview render warning: "+str(e))
+ if FAST_PREVIEW:
+  log("FAST PREVIEW: skipping expensive master GLB and 1600x1600 overview render; terrain tile GLBs, POI GLBs and manifest are the deliverables")
+ else:
+  try:
+   log("Exporting master preview GLB")
+   glb_export([o for o in bpy.context.scene.objects if o.type in {"MESH","CURVE"}],OUT/"AURORA_STRIKE_Master_Preview.glb")
+  except Exception as e:log("Master GLB export warning: "+str(e))
+  # Render is last, after all source/GLB/manifest outputs have been safely written.
+  scene=bpy.context.scene;scene.camera=camera;scene.render.filepath=str(OUT/"preview"/"aurora_strike_overview.png")
+  try:
+   log("Rendering 1600x1600 overview PNG")
+   bpy.ops.render.render(write_still=True)
+   overview=OUT/"preview"/"aurora_strike_overview.png"
+   if overview.exists() and overview.stat().st_size>10000: log("Overview render complete: %s bytes"%overview.stat().st_size)
+   else: log("Overview render returned without a usable image")
+  except Exception as e:log("Overview render warning: "+str(e))
  log("FINISHED: %d terrain tiles and %d POIs in %s"%(len(tile_paths),len(poi_paths),OUT))
 if __name__=="__main__":
  try:main()
