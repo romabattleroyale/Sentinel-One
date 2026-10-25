@@ -124,6 +124,23 @@ def height(x,z):
  h=h*(1-port_weight)+2.5*port_weight
  relief_mask=(1.0-min(.92,city*.82))*smooth(5,30,h)
  h+=(ridge+erosion+fine)*relief_mask
+ # Mountain-only fractal relief: sharper ridgelines, gullies and broken rock shoulders.
+ # The amplitude fades into cities and lowlands so roads/POI pads remain comparatively stable.
+ mountain_mask=max(gauss(x,z,-550,-745,190,185),gauss(x,z,-490,-680,170,200),
+                  gauss(x,z,-630,-655,185,190),gauss(x,z,-435,-755,135,150),
+                  gauss(x,z,-655,-555,145,150),gauss(x,z,-755,-745,145,170),
+                  gauss(x,z,-570,-825,160,120),gauss(x,z,-455,-650,130,155),
+                  gauss(x,z,-700,-820,130,115))
+ mountain_mask=max(0.0,min(1.0,mountain_mask*1.55))
+ ridge_fine=abs(math.sin(x*.071+1.7*math.sin(z*.043)) * math.sin(z*.083-x*.029))
+ ridge_mid=abs(math.sin(x*.031+1.2*math.sin(z*.019)) * math.sin(z*.037-x*.014))
+ fractured=(ridge_fine*3.2+ridge_mid*5.5-2.0)
+ gullies=(math.sin(x*.16+math.sin(z*.081)*1.8)+math.cos(z*.145-x*.053))*1.15
+ h+=(fractured+gullies)*mountain_mask*smooth(48,100,h)*relief_mask
+ # Fine erosion detail across hills, quarry and desert escarpments without noisy flat city pads.
+ erosion_detail=(math.sin(x*.19+math.sin(z*.071))*math.cos(z*.17-x*.063)
+                 +.45*math.sin(x*.31+z*.23)*math.sin(z*.27-x*.11))*1.05
+ h+=erosion_detail*relief_mask*(.35+.65*mountain_mask)
  # Cut a proper shallow port basin under the water level, rather than covering intact land with blue.
  harbor_dx=x+805.0;harbor_dz=z+250.0
  harbor_dx_norm=harbor_dx/(145.0 if harbor_dx<0 else 62.0)
@@ -535,9 +552,11 @@ def make_poi(poi,root):
    dx=random.uniform(-155,155);dz=random.uniform(-128,128)
    r=random.uniform(2.8,6.8);h=random.uniform(8,18)
    ma=M["forest"] if kind=="forest" else M["hill"]
-   cn("TreeTrunk"+str(i),dx,h*.20,dz,r*.17,h*.48,M["wood"],7,r*.10)
-   cn("TreeCrown_Lower"+str(i),dx,h*.52,dz,r,h*.58,ma,9,r*.22)
-   cn("TreeCrown_Upper"+str(i),dx+random.uniform(-.8,.8),h*.78,dz+random.uniform(-.8,.8),r*.68,h*.48,ma,8,.12)
+   # More faceted, multi-tier tree silhouettes: break the repeated single-cone look from map height.
+   cn("TreeTrunk"+str(i),dx,h*.20,dz,r*.17,h*.48,M["wood"],9,r*.10)
+   cn("TreeCrown_Lower"+str(i),dx,h*.47,dz,r,h*.58,ma,12,r*.20)
+   cn("TreeCrown_Middle"+str(i),dx+random.uniform(-.65,.65),h*.66,dz+random.uniform(-.65,.65),r*.78,h*.52,ma,11,r*.15)
+   cn("TreeCrown_Upper"+str(i),dx+random.uniform(-.9,.9),h*.83,dz+random.uniform(-.9,.9),r*.56,h*.43,ma,10,.10)
  elif kind=="lake":
   b("Molo",0,2,122,6,.8,62,M["wood"])
   for i in range(8):cube(label+"_DockPlank"+str(i),(x+(-7+i*2),y+2,z+115),(1,.6,9),M["wood"],c)
