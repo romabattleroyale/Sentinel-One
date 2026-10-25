@@ -99,10 +99,10 @@ func _apply_baked_biome_materials() -> void:
 	if shallow_albedo != null:
 		_shallow_baked_material = StandardMaterial3D.new()
 		_shallow_baked_material.albedo_texture = shallow_albedo
-		_shallow_baked_material.albedo_color = Color(0.52, 0.91, 0.95, 0.88)
+		_shallow_baked_material.albedo_color = Color(0.34, 0.76, 0.87, 1.0)
 		_shallow_baked_material.roughness = 0.18
 		_shallow_baked_material.metallic = 0.02
-		_shallow_baked_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_shallow_baked_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 		_shallow_baked_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		if shallow_normal != null:
 			_shallow_baked_material.normal_enabled = true
@@ -125,11 +125,23 @@ func _apply_baked_materials_to_map(node: Node) -> void:
 				if _ocean_baked_material != null:
 					mesh_node.material_override = _ocean_baked_material
 			"Lago_Azzurro_Water":
+				if _ocean_baked_material != null:
+					var lake_material := _ocean_baked_material.duplicate() as StandardMaterial3D
+					lake_material.albedo_color = Color(0.38, 0.72, 0.91, 1.0)
+					lake_material.roughness = 0.16
+					mesh_node.material_override = lake_material
+			"River_Water":
 				if _shallow_baked_material != null:
-					mesh_node.material_override = _shallow_baked_material
-			"River_Water", "Porto_Harbor_Basin":
-				if _shallow_baked_material != null:
-					mesh_node.material_override = _shallow_baked_material
+					var river_material := _shallow_baked_material.duplicate() as StandardMaterial3D
+					river_material.albedo_color = Color(0.36, 0.75, 0.86, 1.0)
+					river_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+					mesh_node.material_override = river_material
+			"Porto_Harbor_Basin":
+				if _ocean_baked_material != null:
+					var harbor_material := _ocean_baked_material.duplicate() as StandardMaterial3D
+					harbor_material.albedo_color = Color(0.31, 0.67, 0.82, 1.0)
+					harbor_material.roughness = 0.22
+					mesh_node.material_override = harbor_material
 	for child in node.get_children():
 		_apply_baked_materials_to_map(child)
 
