@@ -1334,7 +1334,7 @@ func _apply_capture_view() -> void:
 		push_error("Capture camera was not created.")
 		return
 	if view == "top":
-		_build_map_overlay_labels()
+		pass # Target-art capture: no grid, coordinates, labels, or UI overlay.
 	_set_capture_view(view)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1352,25 +1352,28 @@ func _set_capture_view(view: String) -> void:
 	print("AURORA_VIEW | ", view, " | ", get_window().size, " | ", get_window().position)
 	if capture_camera == null:
 		return
-	if view == "top" and map_overlay == null:
-		_build_map_overlay_labels()
+	# Keep map-art capture free of labels, coordinate grids, and UI.
 	current_capture_view = view
 	if map_overlay != null:
-		map_overlay.visible = (view == "top")
+		map_overlay.visible = false
 	if hud_layer != null:
 		hud_layer.visible = (view != "top")
 	capture_camera.current = true
 	if view == "player":
+		capture_camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		capture_camera.fov = 72.0
 		capture_camera.set_as_top_level(false)
 		capture_camera.position = Vector3(0,2.4,7.5)
 		capture_camera.rotation_degrees = Vector3(-12,0,0)
 		return
+	capture_camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	capture_camera.set_as_top_level(true)
 	match view:
 		"top":
+			capture_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+			capture_camera.size = 2180.0
 			capture_camera.global_position = Vector3(0,1550,0)
 			capture_camera.look_at(Vector3(0,0,0),Vector3(0,0,-1))
-			capture_camera.fov = 70
 		"station":
 			capture_camera.global_position = Vector3(335,78,-85)
 			capture_camera.look_at(Vector3(195,14,-242))
