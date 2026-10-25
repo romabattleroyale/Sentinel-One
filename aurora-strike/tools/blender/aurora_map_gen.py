@@ -49,7 +49,7 @@ def roughen_coastline(points):
   tx,tz=nxt[0]-prev[0],nxt[1]-prev[1]
   length=math.hypot(tx,tz) or 1.0
   nx,nz=-tz/length,tx/length
-  wave=10.5*math.sin(i*.22)+5.4*math.sin(i*.83+.4)+2.6*math.sin(i*2.07+.4)+1.8*math.sin(i*.071)
+  wave=15.5*math.sin(i*.22)+8.2*math.sin(i*.83+.4)+4.0*math.sin(i*2.07+.4)+2.6*math.sin(i*.071)
   out.append((x+nx*wave,z+nz*wave))
  return out
 COAST=roughen_coastline(smooth_coastline(COAST_CONTROL,8))
