@@ -47,10 +47,10 @@ jobs:
           from pathlib import Path
           p = Path("project.godot")
           text = p.read_text(encoding="utf-8")
-          section = '[editor_plugins]\\nenabled=PackedStringArray("res://addons/godotite/plugin.cfg")'
+          section = '[editor_plugins]\nenabled=PackedStringArray("res://addons/godotite/plugin.cfg")'
           if "[editor_plugins]" in text:
               raise SystemExit("Unexpected existing [editor_plugins] section; refusing to overwrite it")
-          p.write_text(text.rstrip() + "\\n\\n" + section + "\\n", encoding="utf-8")
+          p.write_text(text.rstrip() + "\n\n" + section + "\n", encoding="utf-8")
           PY
           dotnet build Godotite.csproj --configuration Release --nologo
       - name: Import Blender GLB and build Godotite LODs
@@ -70,8 +70,8 @@ jobs:
           text = p.read_text(encoding="utf-8")
           if "godotite/build_lod" not in text:
               raise SystemExit("Godotite import option missing: plugin did not register on the GLB")
-          updated, n = re.subn(r'godotite/build_lod\\s*=\\s*false', 'godotite/build_lod=true', text)
-          if n == 0 and not re.search(r'godotite/build_lod\\s*=\\s*true', text):
+          updated, n = re.subn(r'godotite/build_lod\s*=\s*false', 'godotite/build_lod=true', text)
+          if n == 0 and not re.search(r'godotite/build_lod\s*=\s*true', text):
               raise SystemExit("Could not enable Godotite LOD import option")
           p.write_text(updated, encoding="utf-8")
           print("Godotite LOD enabled for the generated master GLB")
