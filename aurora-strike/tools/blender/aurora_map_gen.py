@@ -402,6 +402,42 @@ def make_terrain(c):
  nodes=material.node_tree.nodes;links=material.node_tree.links
  bs=nodes.get("Principled BSDF")
  tex=nodes.new("ShaderNodeTexImage");tex.name="Biome_Albedo_Texture";tex.image=image;tex.interpolation="Linear"
+ tex.image.colorspace_settings.name="sRGB"
+ # Explicit raster-derived tangent normal and roughness maps, portable to Godot's standard PBR material.
+ normal_image=bpy.data.images.new("AURORA_STRIKE_Terrain_Normal",width=resolution,height=resolution,alpha=False,float_buffer=False)
+ rough_image=bpy.data.images.new("AURORA_STRIKE_Terrain_Roughness",width=resolution,height=resolution,alpha=False,float_buffer=False)
+ normal_pixels=[];rough_pixels=[]
+ px_step=2000.0/(resolution-1)
+ for py in range(resolution):
+  wz=-1000.0+py*px_step
+  for px in range(resolution):
+   wx=-1000.0+px*px_step
+   h_l=height(wx-px_step,wz);h_r=height(wx+px_step,wz)
+   h_d=height(wx,wz-px_step);h_u=height(wx,wz+px_step)
+   nx=(h_l-h_r)*.42;ny=1.0;nz=(h_d-h_u)*.42
+   length=math.sqrt(nx*nx+ny*ny+nz*nz) or 1.0
+   normal_pixels.extend((nx/length*.5+.5,ny/length*.5+.5,nz/length*.5+.5,1.0))
+   hh=height(wx,wz)
+   if hh>180: rough=.70
+   elif wx>390 and wz>230: rough=.91
+   elif hh>65: rough=.88
+   else: rough=.96
+   variation=_world_noise(wx,wz,.24,131)*.025+_world_noise(wx,wz,.075,97)*.035
+   value=max(.08,min(1.0,rough+variation))
+   rough_pixels.extend((value,value,value,1.0))
+ normal_image.pixels.foreach_set(normal_pixels);normal_image.pack()
+ rough_image.pixels.foreach_set(rough_pixels);rough_image.pack()
+ texture_dir=OUT/"textures";texture_dir.mkdir(parents=True,exist_ok=True)
+ for img,filename in ((normal_image,"terrain_normal.png"),(rough_image,"terrain_roughness.png")):
+  img.filepath_raw=str(texture_dir/filename);img.file_format="PNG";img.save()
+ normal_tex=nodes.new("ShaderNodeTexImage");normal_tex.image=normal_image;normal_tex.name="Baked_Terrain_Normal"
+ normal_tex.image.colorspace_settings.name="Non-Color"
+ normal_map=nodes.new("ShaderNodeNormalMap");normal_map.inputs["Strength"].default_value=.85
+ links.new(normal_tex.outputs["Color"],normal_map.inputs["Color"])
+ links.new(normal_map.outputs["Normal"],bs.inputs["Normal"])
+ rough_tex=nodes.new("ShaderNodeTexImage");rough_tex.image=rough_image;rough_tex.name="Baked_Terrain_Roughness"
+ rough_tex.image.colorspace_settings.name="Non-Color"
+ links.new(rough_tex.outputs["Color"],bs.inputs["Roughness"])
  links.new(tex.outputs["Color"],bs.inputs["Base Color"])
  bs.inputs["Roughness"].default_value=.96
  # Gentle fine bump gives earth/rock more readable relief under raking light.
