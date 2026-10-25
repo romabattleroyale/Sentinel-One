@@ -38,6 +38,15 @@ jobs:
           test -s aurora-blender-test-output/manifest.csv
           test -s aurora-blender-test-output/preview/aurora_strike_overview.png
           test -s aurora-blender-test-output/AURORA_STRIKE_Master_Preview.glb
+          # Runtime-ready terrain PBR maps (height-derived normal plus terrain albedo/roughness).
+          test -s aurora-blender-test-output/textures/terrain_master_albedo.png
+          test -s aurora-blender-test-output/textures/terrain_master_normal.png
+          test -s aurora-blender-test-output/textures/terrain_master_roughness.png
+          for biome in mountains snow forest ocean shallow_water desert quarry urban asphalt rooftops grass; do
+            for map in albedo normal roughness; do
+              test -s "aurora-blender-test-output/textures/$biome/$biome"_"$map.png"
+            done
+          done
           test "$(find aurora-blender-test-output/tiles -maxdepth 1 -name '*.glb' | wc -l)" -eq 64
           test "$(find aurora-blender-test-output/poi -maxdepth 1 -name '*.glb' | wc -l)" -eq 16
           test "$(awk -F, 'NR>1 && ($1=="terrain_tile" || $1=="water_tile") {n++} END {print n+0}' aurora-blender-test-output/manifest.csv)" -eq 64
