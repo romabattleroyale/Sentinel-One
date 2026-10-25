@@ -57,6 +57,10 @@ func _add_master_terrain_collision(node: Node) -> void:
 		if mesh_node.name == "Island_Terrain_2000m":
 			mesh_node.create_trimesh_collision()
 			print("AURORA_COLLISION | master terrain collision generated")
+		elif mesh_node.name == "Island_Terrain_Collision_LowPoly":
+			mesh_node.create_trimesh_collision()
+			mesh_node.visible = false
+			print("AURORA_COLLISION | low-poly terrain collider generated and render hidden")
 		elif mesh_node.name.begins_with("River_Bridge_"):
 			mesh_node.create_trimesh_collision()
 			print("AURORA_COLLISION | bridge deck generated: ", mesh_node.name)
