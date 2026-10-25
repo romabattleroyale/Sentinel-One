@@ -1,0 +1,50 @@
+name: AURORA STRIKE Godotite build pilot
+
+on:
+  push:
+    branches: [aurora-strike-current]
+    paths:
+      - 'aurora-strike/tools/install_godotite.sh'
+      - 'aurora-strike/tools/blender/aurora_map_gen.py'
+      - '.github/workflows/GODOTITE_PILOT.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Validate installer syntax
+        run: bash -n aurora-strike/tools/install_godotite.sh
+      - name: Install Godotite into the actual Godot project
+        run: bash aurora-strike/tools/install_godotite.sh
+      - name: Verify addon and project wiring
+        run: |
+          set -euo pipefail
+          test -s aurora-strike/addons/godotite/plugin.cfg
+          test -s aurora-strike/Godotite.csproj
+          grep -E '^\[plugin\]' aurora-strike/addons/godotite/plugin.cfg
+          grep -E 'Godot.NET.Sdk/4\.5' aurora-strike/Godotite.csproj
+      - name: Compile Godotite mesh builder
+        working-directory: aurora-strike
+        run: dotnet build Godotite.csproj --configuration Release --nologo
+      - name: Upload Godotite build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-strike-godotite-build-diagnostics
+          path: |
+            aurora-strike/addons/godotite/plugin.cfg
+            aurora-strike/Godotite.csproj
+            aurora-strike/Godotite.csproj.nuget.g.props
+          if-no-files-found: warn
+          retention-days: 7
