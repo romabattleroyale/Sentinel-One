@@ -27,17 +27,58 @@ jobs:
           mkdir -p world/generated_blender
           cp /tmp/aurora-strike-generated/AURORA_STRIKE_Master_Preview.glb world/generated_blender/AURORA_STRIKE_Master_Preview.glb
           test -s world/generated_blender/AURORA_STRIKE_Master_Preview.glb
-      - name: Install Godot 4.5.1
+      - name: Set up .NET 8 SDK for Godotite
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Godot 4.5.1 .NET editor
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.5.1
-          use-dotnet: false
-      - name: Import Blender GLB and verify scene selection
+          use-dotnet: true
+      - name: Install and compile Godotite into the runtime project
         working-directory: aurora-strike
         run: |
-          set -o pipefail
-          godot --headless --editor --path . --quit 2>&1 | tee /tmp/aurora-godot-import.log
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-godot-import.log; then exit 1; fi
+          set -euo pipefail
+          bash tools/install_godotite.sh
+          dotnet new sln --name "AURORA STRIKE" --force
+          dotnet sln "AURORA STRIKE.sln" add Godotite.csproj
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("project.godot")
+          text = p.read_text(encoding="utf-8")
+          section = '[editor_plugins]\\nenabled=PackedStringArray("res://addons/godotite/plugin.cfg")'
+          if "[editor_plugins]" in text:
+              raise SystemExit("Unexpected existing [editor_plugins] section; refusing to overwrite it")
+          p.write_text(text.rstrip() + "\\n\\n" + section + "\\n", encoding="utf-8")
+          PY
+          dotnet build Godotite.csproj --configuration Release --nologo
+      - name: Import Blender GLB and build Godotite LODs
+        working-directory: aurora-strike
+        env:
+          DOTNET_GCConserveMemory: '9'
+        run: |
+          set -euo pipefail
+          # First import writes Godot's sidecar metadata; the plugin exposes its LOD option there.
+          godot --headless --editor --build-solutions --path . --quit 2>&1 | tee /tmp/aurora-godot-import-first.log
+          IMPORT_FILE="world/generated_blender/AURORA_STRIKE_Master_Preview.glb.import"
+          test -s "$IMPORT_FILE"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("world/generated_blender/AURORA_STRIKE_Master_Preview.glb.import")
+          text = p.read_text(encoding="utf-8")
+          if "godotite/build_lod" not in text:
+              raise SystemExit("Godotite import option missing: plugin did not register on the GLB")
+          updated, n = re.subn(r'godotite/build_lod\\s*=\\s*false', 'godotite/build_lod=true', text)
+          if n == 0 and not re.search(r'godotite/build_lod\\s*=\\s*true', text):
+              raise SystemExit("Could not enable Godotite LOD import option")
+          p.write_text(updated, encoding="utf-8")
+          print("Godotite LOD enabled for the generated master GLB")
+          PY
+          godot --headless --editor --build-solutions --path . --quit 2>&1 | tee /tmp/aurora-godotite-lod-import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-godot-import-first.log /tmp/aurora-godotite-lod-import.log; then exit 1; fi
+          grep -E 'Godotite|godotite' /tmp/aurora-godotite-lod-import.log | tail -n 20 || true
       - name: Configure square viewport for full-map screenshots
         working-directory: aurora-strike
         run: sed -i 's|window/size/viewport_height=720|window/size/viewport_height=1280|' project.godot
