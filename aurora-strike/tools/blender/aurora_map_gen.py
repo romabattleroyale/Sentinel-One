@@ -49,7 +49,7 @@ def roughen_coastline(points):
   tx,tz=nxt[0]-prev[0],nxt[1]-prev[1]
   length=math.hypot(tx,tz) or 1.0
   nx,nz=-tz/length,tx/length
-  wave=5.2*math.sin(i*.83)+2.7*math.sin(i*2.07+.4)+1.4*math.sin(i*.19)
+  wave=10.5*math.sin(i*.22)+5.4*math.sin(i*.83+.4)+2.6*math.sin(i*2.07+.4)+1.8*math.sin(i*.071)
   out.append((x+nx*wave,z+nz*wave))
  return out
 COAST=roughen_coastline(smooth_coastline(COAST_CONTROL,8))
@@ -66,7 +66,7 @@ def mat(name,color,rough=.85,metal=0):
  return m
 M={}
 def init_mats():
- colors={"grass":((.22,.38,.15),.96,0),"forest":((.045,.16,.075),.95,0),"hill":((.33,.45,.19),.98,0),"snow":((.88,.93,.97),.77,0),"rock":((.28,.30,.31),.9,0),"soil":((.28,.20,.12),.98,0),"sand":((.79,.66,.44),.98,0),"red":((.64,.25,.13),.97,0),"asphalt":((.11,.125,.13),.9,0),"roof":((.18,.20,.20),.92,0),"concrete":((.48,.49,.46),.91,0),"plaster":((.67,.58,.45),.92,0),"brick":((.47,.24,.17),.9,0),"glass":((.07,.22,.3),.28,.2),"metal":((.25,.29,.3),.48,.45),"wood":((.3,.18,.09),.93,0),"water":((.008,.075,.14),.24,.04),"shallow":((.018,.13,.17),.32,0),"deep":((.003,.018,.045),.28,.02),"yellow":((.92,.73,.24),.75,0),"crop":((.48,.43,.19),.94,0),"rust":((.47,.18,.1),.8,.18),"white":((.95,.94,.86),.78,0)}
+ colors={"grass":((.22,.38,.15),.96,0),"forest":((.045,.16,.075),.95,0),"hill":((.33,.45,.19),.98,0),"snow":((.88,.93,.97),.77,0),"rock":((.28,.30,.31),.9,0),"soil":((.28,.20,.12),.98,0),"sand":((.79,.66,.44),.98,0),"red":((.64,.25,.13),.97,0),"asphalt":((.11,.125,.13),.9,0),"roof":((.18,.20,.20),.92,0),"concrete":((.48,.49,.46),.91,0),"plaster":((.67,.58,.45),.92,0),"brick":((.47,.24,.17),.9,0),"glass":((.07,.22,.3),.28,.2),"metal":((.25,.29,.3),.48,.45),"wood":((.3,.18,.09),.93,0),"water":((.008,.075,.14),.24,.04),"shallow":((.018,.13,.17),.32,0),"deep":((.003,.018,.045),.28,.02),"ocean":((.012,.085,.19),.27,.10),"yellow":((.92,.73,.24),.75,0),"crop":((.48,.43,.19),.94,0),"rust":((.47,.18,.1),.8,.18),"white":((.95,.94,.86),.78,0)}
  for k,(c,r,me) in colors.items(): M[k]=mat("AS_"+k,c,r,me)
  install_realistic_material_library()
  # Route actual scene geometry through the new PBR shaders rather than leaving them as unused library entries.
@@ -105,7 +105,7 @@ def height(x,z):
  # Overlapping asymmetric ridges form a single mountain mass with secondary spurs.
  for cx,cz,sx,sz,amp in [(-550,-745,105,115,130),(-490,-680,90,130,100),(-630,-655,100,125,90),(-435,-755,65,80,65),(-655,-555,75,85,60),(-755,-745,72,108,72),(-570,-825,92,66,74),(-455,-650,60,94,62),(-700,-820,65,60,48)]:
   h+=amp*gauss(x,z,cx,cz,sx,sz)
- ridge=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*8.0*smooth(55,135,h)
+ ridge=(math.sin(x*.052+1.6*math.sin(z*.031))*math.sin(z*.061-x*.017)+.45*math.sin(x*.095+z*.037))*11.5*smooth(55,135,h)
  erosion=(math.sin(x*.083+1.2*math.sin(z*.047))*1.65+math.sin(z*.137-x*.061)*1.05+math.sin(x*.225+z*.193)*math.sin(z*.171)*.65)
  fine=(math.sin(x*.31+math.sin(z*.15))*math.cos(z*.27-x*.09))*.34
  lake=math.sqrt(((x+94)/150)**2+((z+633)/112)**2);h-=20*(1-smooth(.8,1.2,lake))
@@ -134,8 +134,8 @@ def height(x,z):
  mountain_mask=max(0.0,min(1.0,mountain_mask*1.75))
  ridge_fine=abs(math.sin(x*.071+1.7*math.sin(z*.043)) * math.sin(z*.083-x*.029))
  ridge_mid=abs(math.sin(x*.031+1.2*math.sin(z*.019)) * math.sin(z*.037-x*.014))
- fractured=(ridge_fine*5.0+ridge_mid*8.0-3.0)
- gullies=(math.sin(x*.16+math.sin(z*.081)*1.8)+math.cos(z*.145-x*.053))*1.75
+ fractured=(ridge_fine*10.0+ridge_mid*14.0-5.5)
+ gullies=(math.sin(x*.16+math.sin(z*.081)*1.8)+math.cos(z*.145-x*.053))*3.1
  h+=(fractured+gullies)*mountain_mask*smooth(48,100,h)*relief_mask
  # Fine erosion detail across hills, quarry and desert escarpments without noisy flat city pads.
  erosion_detail=(math.sin(x*.19+math.sin(z*.071))*math.cos(z*.17-x*.063)
@@ -361,7 +361,7 @@ def ribbon(name,points,width,yoff,ma,c):
  for i in range(len(points)-1):a=i*2;faces.extend([(a,a+2,a+1),(a+1,a+2,a+3)])
  return mesh(name,verts,faces,c,[ma])
 def build_water(c):
- mesh("Open_Ocean",[(-1200,-1,-1200),(1200,-1,-1200),(1200,-1,1200),(-1200,-1,1200)],[(0,2,1),(0,3,2)],c,[M["deep"]])
+ mesh("Open_Ocean",[(-1200,-1,-1200),(1200,-1,-1200),(1200,-1,1200),(-1200,-1,1200)],[(0,2,1),(0,3,2)],c,[M["ocean"]])
  # Close gaps left by the 5m raster grid with a thin, color-matched strip that follows the smoothed coast.
  lip_v=[];lip_f=[];lip_colors=[]
  for x,z in COAST:
@@ -373,6 +373,16 @@ def build_water(c):
   a=i*2;b=((i+1)%len(COAST))*2
   lip_f.extend([(a,b,a+1),(a+1,b,b+1)])
  mesh("Coastline_Land_Lip",lip_v,lip_f,c,[M["grass"]],colors=lip_colors)
+ # One combined sidewall mesh exposes rocky alpine cliffs and red desert shelves at the waterline.
+ cliff_v=[];cliff_f=[];cliff_idx=[]
+ for i,(x,z) in enumerate(COAST):
+  nx,nz=COAST[(i+1)%len(COAST)]
+  y0=height(x,z);y1=height(nx,nz);base=len(cliff_v)
+  cliff_v.extend([(x,y0+.08,z),(nx,y1+.08,nz),(nx*1.006,-2.0,nz*1.006),(x*1.006,-2.0,z*1.006)])
+  cliff_f.append((base,base+1,base+2,base+3))
+  mx=(x+nx)*.5;mz=(z+nz)*.5
+  cliff_idx.append(0 if (mx < -430 and mz < -485) else (2 if (mx > 430 and mz > 245) else 1))
+ mesh("Island_Shore_Cliff_Faces",cliff_v,cliff_f,c,[M["rock"],M["sand"],M["red"]],cliff_idx)
  v=[];f=[];idx=[]
  # Two continuous concentric bands: warm sand on the inner strip, turquoise shallows on the outer strip.
  # Avoid alternating material on adjacent triangles, which made a jagged checkerboard coastline.
@@ -856,7 +866,8 @@ def main():
  try:
   log("Exporting master preview GLB")
   # The runtime replaces these low-detail blockouts with existing detailed Godot scenes.
-  detailed_poi_prefixes=("Città Centrale_","Stazione Termini_","Centro Commerciale_","Zona Industriale_","Quartiere Residenziale_")
+  # Blender station geometry is retained in the runtime master; other named POIs use dedicated Godot scenes.
+  detailed_poi_prefixes=("Città Centrale_","Centro Commerciale_","Zona Industriale_","Quartiere Residenziale_")
   master_objects=[o for o in bpy.context.scene.objects
                   if o.type in {"MESH","CURVE"} and not o.name.startswith(detailed_poi_prefixes)]
   glb_export(master_objects,OUT/"AURORA_STRIKE_Master_Preview.glb")
