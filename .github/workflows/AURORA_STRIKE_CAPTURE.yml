@@ -41,8 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/install_godotite.sh
-          dotnet new sln --name "AURORA STRIKE" --force
-          dotnet sln "AURORA STRIKE.sln" add "Godotite.csproj"
+          dotnet new sln --name "AURORA_STRIKE" --force
+          dotnet sln "AURORA_STRIKE.sln" add "Godotite.csproj"
           python3 - <<'PY'
           from pathlib import Path
           p = Path("project.godot")
