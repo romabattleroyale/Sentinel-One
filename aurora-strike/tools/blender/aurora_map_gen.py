@@ -68,6 +68,7 @@ M={}
 def init_mats():
  colors={"grass":((.22,.38,.15),.96,0),"forest":((.045,.16,.075),.95,0),"hill":((.33,.45,.19),.98,0),"snow":((.88,.93,.97),.77,0),"rock":((.28,.30,.31),.9,0),"soil":((.28,.20,.12),.98,0),"sand":((.79,.66,.44),.98,0),"red":((.64,.25,.13),.97,0),"asphalt":((.11,.125,.13),.9,0),"roof":((.18,.20,.20),.92,0),"concrete":((.48,.49,.46),.91,0),"plaster":((.67,.58,.45),.92,0),"brick":((.47,.24,.17),.9,0),"glass":((.07,.22,.3),.28,.2),"metal":((.25,.29,.3),.48,.45),"wood":((.3,.18,.09),.93,0),"water":((.008,.075,.14),.24,.04),"shallow":((.018,.13,.17),.32,0),"deep":((.003,.018,.045),.28,.02),"yellow":((.92,.73,.24),.75,0),"crop":((.48,.43,.19),.94,0),"rust":((.47,.18,.1),.8,.18),"white":((.95,.94,.86),.78,0)}
  for k,(c,r,me) in colors.items(): M[k]=mat("AS_"+k,c,r,me)
+ install_realistic_material_library()
 def cube(name,loc,dims,ma,c,bevel=0):
  bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object;o.name=name;o.dimensions=dims;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);relink(o,c);o.data.materials.append(ma)
  if bevel:
@@ -189,6 +190,51 @@ def _world_noise(x,z,scale,seed):
  return (a*.48+b*.34+c*.18)
 def _urban_mask(x,z,cx,cz,rx,rz):
  return math.exp(-.5*(((x-cx)/rx)**2+((z-cz)/rz)**2))
+
+def make_pbr_surface(name, base_color, roughness=.82, metallic=0.0, noise_scale=38.0, bump_strength=.16, bump_distance=.08, fine_scale=180.0):
+ material=bpy.data.materials.get(name) or bpy.data.materials.new(name)
+ material.diffuse_color=(*base_color,1)
+ material.use_nodes=True
+ nodes=material.node_tree.nodes;links=material.node_tree.links
+ nodes.clear()
+ out=nodes.new("ShaderNodeOutputMaterial")
+ bs=nodes.new("ShaderNodeBsdfPrincipled")
+ bs.inputs["Base Color"].default_value=(*base_color,1)
+ bs.inputs["Roughness"].default_value=roughness
+ bs.inputs["Metallic"].default_value=metallic
+ texcoord=nodes.new("ShaderNodeTexCoord")
+ broad=nodes.new("ShaderNodeTexNoise");broad.inputs["Scale"].default_value=noise_scale;broad.inputs["Detail"].default_value=5.0;broad.inputs["Roughness"].default_value=.72
+ links.new(texcoord.outputs["Generated"],broad.inputs["Vector"])
+ ramp=nodes.new("ShaderNodeValToRGB")
+ dark=tuple(max(0,v*.72) for v in base_color)+(1,)
+ light=tuple(min(1,v*1.18+.012) for v in base_color)+(1,)
+ ramp.color_ramp.elements[0].position=.22;ramp.color_ramp.elements[0].color=dark
+ ramp.color_ramp.elements[1].position=.78;ramp.color_ramp.elements[1].color=light
+ links.new(broad.outputs["Fac"],ramp.inputs["Fac"]);links.new(ramp.outputs["Color"],bs.inputs["Base Color"])
+ fine=nodes.new("ShaderNodeTexNoise");fine.inputs["Scale"].default_value=fine_scale;fine.inputs["Detail"].default_value=2.0;fine.inputs["Roughness"].default_value=.68
+ links.new(texcoord.outputs["Generated"],fine.inputs["Vector"])
+ bump=nodes.new("ShaderNodeBump");bump.inputs["Strength"].default_value=bump_strength;bump.inputs["Distance"].default_value=bump_distance
+ links.new(fine.outputs["Fac"],bump.inputs["Height"]);links.new(bump.outputs["Normal"],bs.inputs["Normal"])
+ links.new(bs.outputs["BSDF"],out.inputs["Surface"])
+ return material
+
+def install_realistic_material_library():
+ settings={
+  "AS_asphalt_PBR":((.075,.082,.085),.91,.02,54,.18,.055,240),
+  "AS_concrete_PBR":((.42,.43,.41),.87,0,42,.24,.07,210),
+  "AS_plaster_PBR":((.62,.55,.44),.88,0,28,.20,.045,150),
+  "AS_brick_PBR":((.40,.17,.12),.91,0,34,.24,.05,190),
+  "AS_roof_PBR":((.105,.12,.125),.84,.08,44,.22,.04,220),
+  "AS_metal_PBR":((.22,.25,.26),.43,.72,68,.12,.025,280),
+  "AS_wood_PBR":((.24,.13,.065),.79,0,18,.18,.035,130),
+  "AS_sand_PBR":((.65,.49,.30),.94,0,32,.28,.09,170),
+  "AS_soil_PBR":((.22,.15,.095),.97,0,22,.30,.11,120),
+  "AS_glass_PBR":((.055,.16,.21),.20,.16,95,.06,.008,300),
+  "AS_rust_PBR":((.33,.105,.055),.83,.18,30,.25,.06,190),
+  "AS_water_PBR":((.008,.075,.14),.24,.04,26,.08,.012,150)
+ }
+ for name,(color,rough,metal,scale,bump_strength,bump_distance,fine_scale) in settings.items():
+  make_pbr_surface(name,color,rough,metal,scale,bump_strength,bump_distance,fine_scale)
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
  # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
