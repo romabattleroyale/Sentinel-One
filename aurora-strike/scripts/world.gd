@@ -1320,9 +1320,10 @@ func _build_landmarks(use_blender_anchor: bool = false) -> void:
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "Player"
+	# Assign the script before entering the scene tree so _ready() runs and creates mobile controls.
+	player.set_script(load("res://scripts/player.gd"))
 	# Open ground south of the station; terrain is ~8.17 m here, and the camera clears the platforms.
 	player.position = Vector3(210,8.5,-100) if using_blender_map else Vector3(0,2.5,90)
-	add_child(player)
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.55
@@ -1349,7 +1350,7 @@ func _build_player() -> void:
 	camera.rotation_degrees.x = -12
 	camera.current = true
 	pivot.add_child(camera)
-	player.set_script(load("res://scripts/player.gd"))
+	add_child(player)
 
 func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
