@@ -60,6 +60,12 @@ jobs:
                   text = prefix + section + "\n" + plugin_line + "\n"
           else:
               text = text.rstrip() + "\n\n" + section + "\n" + plugin_line + "\n"
+          # Mark the CI copy as a .NET Godot project so the editor loads CSharpScript methods.
+          features = 'config/features=PackedStringArray("4.5", "Mobile")'
+          if features in text:
+              text = text.replace(features, 'config/features=PackedStringArray("4.5", "C#", "Mobile")')
+          elif 'config/features=PackedStringArray("4.5", "C#", "Mobile")' not in text:
+              raise SystemExit("Unexpected project feature declaration")
           p.write_text(text, encoding="utf-8")
           PY
           dotnet build Godotite.csproj --configuration Release --nologo
