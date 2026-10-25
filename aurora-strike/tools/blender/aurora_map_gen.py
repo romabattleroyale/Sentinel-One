@@ -321,6 +321,60 @@ def make_biome_texture_set(name, base_color, accent_color, roughness_value, nois
  log("Baked PBR textures for %s at %dx%d"%(name,size,size))
  return outdir
 
+def bind_baked_pbr_textures(material_name, texture_dir, roughness_default=.85, normal_strength=.85):
+ # Use actual baked PNG maps instead of Blender-only procedural nodes so glTF exports preserve PBR detail.
+ directory=Path(texture_dir)
+ albedo_path=directory/(directory.name+"_albedo.png")
+ normal_path=directory/(directory.name+"_normal.png")
+ rough_path=directory/(directory.name+"_roughness.png")
+ if not (albedo_path.is_file() and normal_path.is_file() and rough_path.is_file()):
+  raise FileNotFoundError("Incomplete PBR set: "+str(directory))
+ material=bpy.data.materials.get(material_name) or bpy.data.materials.new(material_name)
+ material.use_nodes=True
+ nodes=material.node_tree.nodes;links=material.node_tree.links
+ nodes.clear()
+ output=nodes.new("ShaderNodeOutputMaterial")
+ bs=nodes.new("ShaderNodeBsdfPrincipled")
+ bs.inputs["Roughness"].default_value=roughness_default
+ albedo=bpy.data.images.load(str(albedo_path),check_existing=True)
+ normal=bpy.data.images.load(str(normal_path),check_existing=True)
+ rough=bpy.data.images.load(str(rough_path),check_existing=True)
+ albedo.colorspace_settings.name="sRGB"
+ normal.colorspace_settings.name="Non-Color"
+ rough.colorspace_settings.name="Non-Color"
+ albedo_node=nodes.new("ShaderNodeTexImage");albedo_node.image=albedo;albedo_node.label="Baked Albedo"
+ normal_node=nodes.new("ShaderNodeTexImage");normal_node.image=normal;normal_node.label="Baked Tangent Normal"
+ rough_node=nodes.new("ShaderNodeTexImage");rough_node.image=rough;rough_node.label="Baked Roughness"
+ normal_map=nodes.new("ShaderNodeNormalMap");normal_map.inputs["Strength"].default_value=normal_strength
+ links.new(albedo_node.outputs["Color"],bs.inputs["Base Color"])
+ links.new(normal_node.outputs["Color"],normal_map.inputs["Color"])
+ links.new(normal_map.outputs["Normal"],bs.inputs["Normal"])
+ links.new(rough_node.outputs["Color"],bs.inputs["Roughness"])
+ links.new(bs.outputs["BSDF"],output.inputs["Surface"])
+ return material
+
+def bind_biome_texture_library(outdir):
+ texture_root=Path(outdir)/"textures"
+ mappings=[
+  ("rock","mountains",.88,1.0),
+  ("forest","forest",.95,.9),
+  ("water","ocean",.22,.28),
+  ("shallow","shallow_water",.18,.22),
+  ("red","desert",.92,.75),
+  ("sand","quarry",.89,.8),
+  ("concrete","urban",.87,.55),
+  ("asphalt","asphalt",.92,.4),
+  ("roof","rooftops",.84,.45),
+  ("grass","grass",.97,.65),
+  ("soil","quarry",.96,.7),
+  ("snow","mountains",.78,.48),
+ ]
+ for material_key,texture_name,roughness_value,normal_strength in mappings:
+  M[material_key]=bind_baked_pbr_textures("AS_"+material_key+"_Baked_PBR",texture_root/texture_name,roughness_value,normal_strength)
+ # Deep ocean is kept distinctly darker and bluer than the transparent/shallow shelf.
+ M["ocean"]=bind_baked_pbr_textures("AS_ocean_Baked_PBR",texture_root/"ocean",.24,.18)
+ log("Applied baked albedo, normal and roughness maps to %d biome materials"%len(mappings))
+
 def generate_biome_texture_library(outdir):
  # Palette is matched to the reference: cold slate/snow, deep canopy, ultramarine water, terracotta badlands.
  sets=[
@@ -982,6 +1036,7 @@ def main():
   if c.name!=bpy.context.scene.collection.name:bpy.data.collections.remove(c)
  init_mats()
  generate_biome_texture_library(OUT)
+ bind_biome_texture_library(OUT)
  M["forest_lit"]=mat("AS_forest_lit",(.085,.235,.095),.96,0)
  M["forest_deep"]=mat("AS_forest_deep",(.025,.105,.047),.98,0)
  M["hill_lit"]=mat("AS_hill_lit",(.29,.43,.13),.97,0)
