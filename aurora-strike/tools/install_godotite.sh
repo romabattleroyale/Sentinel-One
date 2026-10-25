@@ -3,8 +3,7 @@ set -euo pipefail
 
 # Install Godotite into the AURORA STRIKE Godot project.
 # Requirements: curl, unzip, Godot 4.5+ .NET editor, .NET 8 SDK.
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROJECT="$ROOT"
+PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADDONS="$PROJECT/addons"
 DEST="$ADDONS/godotite"
 VERSION="v0.9.0"
