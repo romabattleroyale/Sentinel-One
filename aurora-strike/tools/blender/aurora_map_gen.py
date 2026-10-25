@@ -222,22 +222,13 @@ def make_pbr_surface(name, base_color, roughness=.82, metallic=0.0, noise_scale=
  bs.inputs["Base Color"].default_value=(*base_color,1)
  bs.inputs["Roughness"].default_value=roughness
  bs.inputs["Metallic"].default_value=metallic
- # Use world-space coordinates so texture grain has a consistent real-world size across buildings,
- # road strips and props; Generated coordinates would stretch/restart on every individual mesh.
- geometry=nodes.new("ShaderNodeNewGeometry")
- world_position=geometry.outputs["Position"]
- broad=nodes.new("ShaderNodeTexNoise");broad.inputs["Scale"].default_value=noise_scale;broad.inputs["Detail"].default_value=5.0;broad.inputs["Roughness"].default_value=.72
- links.new(world_position,broad.inputs["Vector"])
- ramp=nodes.new("ShaderNodeValToRGB")
- dark=tuple(max(0,v*.72) for v in base_color)+(1,)
- light=tuple(min(1,v*1.18+.012) for v in base_color)+(1,)
- ramp.color_ramp.elements[0].position=.22;ramp.color_ramp.elements[0].color=dark
- ramp.color_ramp.elements[1].position=.78;ramp.color_ramp.elements[1].color=light
- links.new(broad.outputs["Fac"],ramp.inputs["Fac"]);links.new(ramp.outputs["Color"],bs.inputs["Base Color"])
- fine=nodes.new("ShaderNodeTexNoise");fine.inputs["Scale"].default_value=fine_scale;fine.inputs["Detail"].default_value=2.0;fine.inputs["Roughness"].default_value=.68
- links.new(world_position,fine.inputs["Vector"])
- bump=nodes.new("ShaderNodeBump");bump.inputs["Strength"].default_value=bump_strength;bump.inputs["Distance"].default_value=bump_distance
- links.new(fine.outputs["Fac"],bump.inputs["Height"]);links.new(bump.outputs["Normal"],bs.inputs["Normal"])
+ # Keep the shader glTF-exportable: Blender procedural Noise/ColorRamp/Bump graphs are
+ # not portable to Godot's standard PBR materials and were producing white roads/water.
+ # Bake complex biome variation into the terrain albedo texture; use stable PBR base colors
+ # for modular geometry until packed tileable texture maps are authored for these materials.
+ bs.inputs["Base Color"].default_value=(*base_color,1)
+ bs.inputs["Roughness"].default_value=roughness
+ bs.inputs["Metallic"].default_value=metallic
  links.new(bs.outputs["BSDF"],out.inputs["Surface"])
  return material
 
