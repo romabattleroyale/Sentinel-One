@@ -3,7 +3,7 @@
 # Important: heights/coastline are art-direction estimates, not survey data.
 # Run in Blender Scripting workspace or: blender --background --python aurora_map_gen.py
 # 1 BU = 1 m. Horizontal plane X/Z: -X west, +X east, -Z north, +Z south.
-import bpy, math, csv, os, random, time
+import bpy, math, csv, os, random, time, shutil
 from pathlib import Path
 from mathutils import Vector
 
@@ -1123,6 +1123,21 @@ def main():
   else: log("Overview render returned without a usable image")
  except Exception as e:log("Overview render warning: "+str(e))
  log("FINISHED: %d terrain tiles and %d POIs in %s"%(len(tile_paths),len(poi_paths),OUT))
+ # When run locally (without AURORA_OUTPUT_DIR), publish generated assets directly into the Godot project.
+ # CI controls its temporary output directory and performs the same copy in its validated workflow.
+ if "AURORA_OUTPUT_DIR" not in os.environ:
+  project_root=Path(__file__).resolve().parents[2]
+  runtime_tex=project_root/"textures"/"biomes"
+  runtime_tex.mkdir(parents=True,exist_ok=True)
+  if (OUT/"textures").is_dir():
+   for child in (OUT/"textures").iterdir():
+    target=runtime_tex/child.name
+    if child.is_dir(): shutil.copytree(child,target,dirs_exist_ok=True)
+    elif child.is_file(): shutil.copy2(child,target)
+  runtime_glb=project_root/"world"/"generated_blender"/"AURORA_STRIKE_Master_Preview.glb"
+  runtime_glb.parent.mkdir(parents=True,exist_ok=True)
+  shutil.copy2(OUT/"AURORA_STRIKE_Master_Preview.glb",runtime_glb)
+  log("Published master GLB and biome PBR textures to Godot project resources")
 if __name__=="__main__":
  try:main()
  except Exception as e:log("FATAL: "+repr(e));raise
