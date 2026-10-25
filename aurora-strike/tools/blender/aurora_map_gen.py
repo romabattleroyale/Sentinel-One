@@ -395,11 +395,38 @@ def generate_biome_texture_library(outdir):
   generated.append(make_biome_texture_set(name,base,accent,roughness_value,scale,outdir,1024))
  return generated
 
+def make_terrain_height_normal(outdir, size=1024):
+ # Derive actual terrain relief from the shared height field. UVs run +X/+Z and surface normal is +Y,
+ # so a tangent-space normal is packed as world-X, world-Z, world-Y into RGB.
+ import array
+ image=bpy.data.images.new("AURORA_STRIKE_Terrain_Height_Normal",width=size,height=size,alpha=False,float_buffer=False)
+ pixels=array.array("f")
+ step=2000.0/(size-1)
+ for py in range(size):
+  z=-1000.0+py*step
+  for px in range(size):
+   x=-1000.0+px*step
+   left=height(x-step,z);right=height(x+step,z)
+   back=height(x,z-step);front=height(x,z+step)
+   nx=(left-right)*.26
+   tangent_y=(back-front)*.26
+   normal_z=1.0
+   length=math.sqrt(nx*nx+tangent_y*tangent_y+normal_z*normal_z) or 1.0
+   pixels.extend((nx/length*.5+.5,tangent_y/length*.5+.5,normal_z/length*.5+.5,1.0))
+ image.pixels.foreach_set(pixels)
+ image.colorspace_settings.name="Non-Color"
+ image.pack()
+ path=Path(outdir)/"textures"/"terrain_master_normal.png"
+ path.parent.mkdir(parents=True,exist_ok=True)
+ image.filepath_raw=str(path);image.file_format="PNG";image.save()
+ log("Baked height-derived terrain normal %dx%d"%(size,size))
+ return image
+
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
  terrain_maps=make_biome_texture_set("terrain_master",(.18,.31,.12),(.72,.48,.27),.96,5.2,OUT,1024)
  terrain_albedo=bpy.data.images.load(str(terrain_maps/"terrain_master_albedo.png"),check_existing=True)
- terrain_normal=bpy.data.images.load(str(terrain_maps/"terrain_master_normal.png"),check_existing=True)
+ terrain_normal=make_terrain_height_normal(OUT,1024)
  terrain_roughness=bpy.data.images.load(str(terrain_maps/"terrain_master_roughness.png"),check_existing=True)
  # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
  resolution=1536
@@ -420,7 +447,7 @@ def make_terrain(c):
    forest=max(_urban_mask(x,z,227,-703,255,225),_urban_mask(x,z,-594,39,245,215)*.88,
               _urban_mask(x,z,-610,445,190,235)*.65,_urban_mask(x,z,-240,-475,180,125)*.58)
    forest=max(0,min(.9,forest*(.78+.12*n1+.09*n2)))
-   fcol=(.035+.016*n2,.145+.032*n1,.055+.018*n3)
+   fcol=(.045+.018*n2,.195+.035*n1,.062+.020*n3)
    for ci in range(3):rgb[ci]=rgb[ci]*(1-forest)+fcol[ci]*forest
    # A mottled snow/rock field spans the north-west mountain massif.
    mountain=_urban_mask(x,z,-575,-720,260,220)
@@ -428,16 +455,16 @@ def make_terrain(c):
    rcol=(.26+.05*n2,.28+.06*n2,.30+.06*n2)
    for ci in range(3):rgb[ci]=rgb[ci]*(1-rock)+rcol[ci]*rock
    snow=max(0,min(.98,(h-150)/105))*mountain
-   snowpatch=max(0,min(.85,.42+.27*n1+.16*n2))
+   snowpatch=max(0,min(.98,.68+.22*n1+.15*n2))
    snow*=snowpatch
    for ci,white in enumerate((.91,.94,.97)):rgb[ci]=rgb[ci]*(1-snow)+white*snow
    # Desert surface: warm mineral strata, dry river fans and sparse rock stippling.
    desert=max(_urban_mask(x,z,641,438,275,230),_urban_mask(x,z,31,523,220,190)*.35)
-   dcol=(.77+.055*n1,.43+.045*n2,.22+.026*n3)
+   dcol=(.84+.045*n1,.34+.040*n2,.135+.024*n3)
    for ci in range(3):rgb[ci]=rgb[ci]*(1-desert)+dcol[ci]*desert
    strata=.5+.5*math.sin((z+x*.42)*.071+2.4*n2)
    strata_mix=desert*.14*strata
-   ochre=(.56,.24,.105)
+   ochre=(.66,.18,.065)
    for ci in range(3):rgb[ci]=rgb[ci]*(1-strata_mix)+ochre[ci]*strata_mix
    # Agricultural parcel bands to the east of the commercial centre.
    farm=_urban_mask(x,z,719,78,225,155)
