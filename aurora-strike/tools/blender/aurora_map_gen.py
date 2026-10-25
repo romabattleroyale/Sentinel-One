@@ -396,7 +396,7 @@ def generate_biome_texture_library(outdir):
 
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
- terrain_maps=make_biome_texture_set("terrain_master",(.18,.31,.12),(.72,.48,.27),.96,5.2,OUT,2048)
+ terrain_maps=make_biome_texture_set("terrain_master",(.18,.31,.12),(.72,.48,.27),.96,5.2,OUT,1024)
  terrain_albedo=bpy.data.images.load(str(terrain_maps/"terrain_master_albedo.png"),check_existing=True)
  terrain_normal=bpy.data.images.load(str(terrain_maps/"terrain_master_normal.png"),check_existing=True)
  terrain_roughness=bpy.data.images.load(str(terrain_maps/"terrain_master_roughness.png"),check_existing=True)
@@ -462,35 +462,14 @@ def make_terrain(c):
  tex=nodes.new("ShaderNodeTexImage");tex.name="Biome_Albedo_Texture";tex.image=image;tex.interpolation="Linear"
  tex.image.colorspace_settings.name="sRGB"
  # Explicit raster-derived tangent normal and roughness maps, portable to Godot's standard PBR material.
- normal_image=bpy.data.images.new("AURORA_STRIKE_Terrain_Normal",width=resolution,height=resolution,alpha=False,float_buffer=False)
- rough_image=bpy.data.images.new("AURORA_STRIKE_Terrain_Roughness",width=resolution,height=resolution,alpha=False,float_buffer=False)
- normal_pixels=[];rough_pixels=[]
- px_step=2000.0/(resolution-1)
- for py in range(resolution):
-  wz=-1000.0+py*px_step
-  for px in range(resolution):
-   wx=-1000.0+px*px_step
-   h_l=height(wx-px_step,wz);h_r=height(wx+px_step,wz)
-   h_d=height(wx,wz-px_step);h_u=height(wx,wz+px_step)
-   nx=(h_l-h_r)*.42;ny=1.0;nz=(h_d-h_u)*.42
-   length=math.sqrt(nx*nx+ny*ny+nz*nz) or 1.0
-   normal_pixels.extend((nx/length*.5+.5,ny/length*.5+.5,nz/length*.5+.5,1.0))
-   hh=height(wx,wz)
-   if hh>180: rough=.70
-   elif wx>390 and wz>230: rough=.91
-   elif hh>65: rough=.88
-   else: rough=.96
-   variation=_world_noise(wx,wz,.24,131)*.025+_world_noise(wx,wz,.075,97)*.035
-   value=max(.08,min(1.0,rough+variation))
-   rough_pixels.extend((value,value,value,1.0))
- normal_image.pixels.foreach_set(normal_pixels);normal_image.pack()
- rough_image.pixels.foreach_set(rough_pixels);rough_image.pack()
+ # Reuse the baked 1024² master PBR maps instead of sampling millions of height values twice.
+ normal_image=terrain_normal
+ rough_image=terrain_roughness
+ normal_image.colorspace_settings.name="Non-Color"
+ rough_image.colorspace_settings.name="Non-Color"
  texture_dir=OUT/"textures";texture_dir.mkdir(parents=True,exist_ok=True)
- # Save the final biome-set textures to disk as explicit, Godot-importable PNG assets.
  for name,img in (("terrain_master_albedo.png",image),("terrain_master_normal.png",normal_image),("terrain_master_roughness.png",rough_image)):
   img.filepath_raw=str(texture_dir/name);img.file_format="PNG";img.save()
- for img,filename in ((normal_image,"terrain_normal.png"),(rough_image,"terrain_roughness.png")):
-  img.filepath_raw=str(texture_dir/filename);img.file_format="PNG";img.save()
  normal_tex=nodes.new("ShaderNodeTexImage");normal_tex.image=normal_image;normal_tex.name="Baked_Terrain_Normal"
  normal_tex.image.colorspace_settings.name="Non-Color"
  normal_map=nodes.new("ShaderNodeNormalMap");normal_map.inputs["Strength"].default_value=.85
@@ -501,10 +480,7 @@ def make_terrain(c):
  links.new(rough_tex.outputs["Color"],bs.inputs["Roughness"])
  links.new(tex.outputs["Color"],bs.inputs["Base Color"])
  bs.inputs["Roughness"].default_value=.96
- # Gentle fine bump gives earth/rock more readable relief under raking light.
- noise=nodes.new("ShaderNodeTexNoise");noise.inputs["Scale"].default_value=5.5;noise.inputs["Detail"].default_value=5.0;noise.inputs["Roughness"].default_value=.72
- bump=nodes.new("ShaderNodeBump");bump.inputs["Strength"].default_value=.16;bump.inputs["Distance"].default_value=.45
- links.new(noise.outputs["Fac"],bump.inputs["Height"]);links.new(bump.outputs["Normal"],bs.inputs["Normal"])
+
  verts=[];uvs=[];lookup={};faces=[];steps=int(SIZE/STEP)+1
  # Scanline rasterization: intersect the coastline once per terrain row, rather than
  # running a full point-in-polygon test (hundreds of coast segments) for every vertex.
