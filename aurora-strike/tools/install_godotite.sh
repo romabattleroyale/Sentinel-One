@@ -29,5 +29,19 @@ if [[ -z "${SOURCE:-}" || ! -f "$SOURCE/plugin.cfg" ]]; then
   exit 3
 fi
 cp -a "$SOURCE" "$DEST"
-echo "Installed Godotite into $DEST"
-echo "Next: open with Godot 4.5+ .NET, create/build the C# solution, then enable Project Settings > Plugins > Godotite."
+# Godotite's editor-time mesh builder is C#. Copy its matching SDK project too.
+CSPROJ="$(find "$TMP/unpacked" -maxdepth 3 -name 'Godotite.csproj' -print -quit)"
+if [[ -z "$CSPROJ" || ! -f "$CSPROJ" ]]; then
+  echo "Could not find Godotite.csproj in the downloaded archive." >&2
+  rm -rf "$DEST"
+  exit 4
+fi
+if [[ -e "$PROJECT/Godotite.csproj" ]]; then
+  echo "Godotite.csproj already exists; refusing to overwrite it." >&2
+  rm -rf "$DEST"
+  exit 5
+fi
+cp "$CSPROJ" "$PROJECT/Godotite.csproj"
+echo "Installed Godotite into $DEST and copied Godotite.csproj."
+echo "Build once with: dotnet build Godotite.csproj"
+echo "Then enable Project Settings > Plugins > Godotite and build the terrain LOD in the editor."
