@@ -191,8 +191,8 @@ def _urban_mask(x,z,cx,cz,rx,rz):
  return math.exp(-.5*(((x-cx)/rx)**2+((z-cz)/rz)**2))
 def make_terrain(c):
  log("Generating dense island terrain with procedural biome albedo")
- # 512² world-aligned texture: terrain keeps real geometry but has a painted landscape read from above.
- resolution=512
+ # 1024² world-aligned biome albedo: higher resolution reduces visible color smearing across 250 m tiles.
+ resolution=1024
  image=bpy.data.images.new("AURORA_STRIKE_Biome_Albedo",width=resolution,height=resolution,alpha=True,float_buffer=False)
  pixels=[]
  for py in range(resolution):
@@ -356,7 +356,8 @@ def build_water(c):
 def paths_between(c):
  roads=[
   # Main transport spine through the port, central city, Termini and residential district.
-  [(-720,-250),(-700,-250),(-520,-250),(-390,-250),(-297,-250),(-160,-248),(-50,-245),(80,-243),(195,-242),(320,-252),(450,-290),(565,-330),(703,-375)],
+  # Main spine bypasses Termini instead of cutting through the station hall and platforms.
+  [(-720,-250),(-700,-250),(-520,-250),(-390,-250),(-297,-250),(-160,-248),(-50,-245),(35,-255),(65,-305),(95,-365),(195,-382),(295,-365),(325,-310),(350,-270),(450,-290),(565,-330),(703,-375)],
   # West loop through green hills and Riviera, with a branch to the snowy mountain.
   [(-594,39),(-680,85),(-735,160),(-766,289),(-670,280),(-594,210),(-480,135),(-390,40),(-297,-250),(-420,-430),(-486,-555),(-531,-719)],
   # Southern industrial/quarry/military/desert road; original central bridge anchor retained.
@@ -541,7 +542,8 @@ def make_poi(poi,root):
   for cx in range(-58,59,14):
    b("Canopy_Support_%d"%cx,cx,16,39,.85,12,.85,M["metal"],.08)
   # Six platforms with roof trusses, platform edge safety stripe, sleepers and two rails per track.
-  for pidx,pz in enumerate((-75,-48,-21,21,48,75)):
+  # Keep the six platforms outside the hall footprint; the previous inner pair clipped through the building.
+  for pidx,pz in enumerate((-112,-82,-52,52,82,112)):
    b("Platform_%02d"%pidx,0,1,pz,170,2,13,M["concrete"],.18)
    b("Platform_Safety_Edge_%02d"%pidx,0,2.08,pz-5.3,168,.16,.48,M["yellow"],.03)
    b("Canopy_%02d"%pidx,0,10,pz,174,1,13,M["metal"],.12)
