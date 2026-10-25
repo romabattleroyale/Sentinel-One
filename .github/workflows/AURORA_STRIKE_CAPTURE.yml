@@ -27,6 +27,9 @@ jobs:
           mkdir -p world/generated_blender
           cp /tmp/aurora-strike-generated/AURORA_STRIKE_Master_Preview.glb world/generated_blender/AURORA_STRIKE_Master_Preview.glb
           test -s world/generated_blender/AURORA_STRIKE_Master_Preview.glb
+          mkdir -p textures/biomes
+          cp -a /tmp/aurora-strike-generated/textures/. textures/biomes/
+          find textures/biomes -maxdepth 2 -type f -name "*.png" -print
       - name: Set up .NET 8 SDK for Godotite
         uses: actions/setup-dotnet@v4
         with:
