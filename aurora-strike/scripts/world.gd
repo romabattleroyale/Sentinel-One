@@ -35,6 +35,7 @@ func _ready() -> void:
 	print("AURORA_RUNTIME_READY | procedural fallback island, biomes, POIs and city generated")
 
 func _try_load_blender_map() -> bool:
+	_apply_baked_biome_materials()
 	var asset_path := "res://world/generated_blender/AURORA_STRIKE_Master_Preview.glb"
 	if not ResourceLoader.exists(asset_path):
 		print("AURORA_MAP_SOURCE | procedural fallback")
@@ -50,6 +51,58 @@ func _try_load_blender_map() -> bool:
 	_add_master_terrain_collision(map_instance)
 	print("AURORA_MAP_SOURCE | ", asset_path)
 	return true
+
+func _apply_baked_biome_materials() -> void:
+	# The Blender build drops one packed PBR set per biome into this directory. Missing
+	# optional maps are non-fatal in-editor, but CI verifies the complete texture inventory.
+	var texture_root := "res://textures/biomes"
+	var terrain_albedo := _load_biome_texture(texture_root + "/terrain_master_albedo.png", false)
+	var terrain_normal := _load_biome_texture(texture_root + "/terrain_master_normal.png", true)
+	var terrain_roughness := _load_biome_texture(texture_root + "/terrain_master_roughness.png", true)
+	if terrain_albedo != null:
+		print("AURORA_PBR | terrain albedo map loaded")
+		if terrain_normal != null and terrain_roughness != null:
+			print("AURORA_PBR | terrain normal + roughness maps loaded")
+	var ocean_albedo := _load_biome_texture(texture_root + "/ocean/ocean_albedo.png", false)
+	var ocean_normal := _load_biome_texture(texture_root + "/ocean/ocean_normal.png", true)
+	var ocean_rough := _load_biome_texture(texture_root + "/ocean/ocean_roughness.png", true)
+	if ocean_albedo != null:
+		var ocean_mat := StandardMaterial3D.new()
+		ocean_mat.albedo_texture = ocean_albedo
+		ocean_mat.roughness = 0.22
+		ocean_mat.metallic = 0.04
+		ocean_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		if ocean_normal != null:
+			ocean_mat.normal_enabled = true
+			ocean_mat.normal_texture = ocean_normal
+			ocean_mat.normal_scale = 0.25
+		if ocean_rough != null:
+			ocean_mat.roughness_texture = ocean_rough
+		# Store for the runtime renderer to share with the generated ocean mesh.
+		set_meta("aurora_ocean_material", ocean_mat)
+	var shallow_albedo := _load_biome_texture(texture_root + "/shallow_water/shallow_water_albedo.png", false)
+	if shallow_albedo != null:
+		var shallow_mat := StandardMaterial3D.new()
+		shallow_mat.albedo_texture = shallow_albedo
+		shallow_mat.roughness = 0.18
+		shallow_mat.metallic = 0.02
+		shallow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		shallow_mat.albedo_color = Color(0.45, 0.88, 0.93, 0.82)
+		set_meta("aurora_shallow_material", shallow_mat)
+	print("AURORA_PBR | biomes texture lookup complete")
+
+func _load_biome_texture(path: String, as_normal: bool) -> Texture2D:
+	if not ResourceLoader.exists(path):
+		return null
+	var image := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if image == null or image.is_empty():
+		push_warning("AURORA_PBR | unable to load " + path)
+		return null
+	if as_normal:
+		# PNG authored in OpenGL convention by Blender; Godot expects a normal-map texture resource.
+		var texture := ImageTexture.create_from_image(image)
+		return texture
+	return ImageTexture.create_from_image(image)
 
 func _add_master_terrain_collision(node: Node) -> void:
 	if node is MeshInstance3D:
