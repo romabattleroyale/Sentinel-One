@@ -522,10 +522,44 @@ def make_poi(poi,root):
    cube("City_Street_H_%02d"%road_idx,(x,y+.42,z+street_z),(240,.20,5.6),M["asphalt"],c,.08)
    cube("City_Verge_H_%02d"%road_idx,(x,y+.30,z+street_z),(240,.16,8.0),M["concrete"],c,.04)
  elif kind=="station":
-  b("MainHall",0,13,0,145,26,55,M["plaster"],1);b("GlassFront",0,13,28,120,17,1,M["glass"]);b("Roof",0,27,0,154,3,64,M["roof"])
-  for pz in (-75,-48,-21,21,48,75):
-   b("Platform",0,1,pz,170,2,13,M["concrete"]);b("Canopy",0,10,pz,174,1,13,M["metal"])
-   for tx in range(-80,81,8):b("Rail",tx,2,pz-2,8,.4,.4,M["metal"])
+  # Termini: long contemporary hall, glazed entrance, roof lanterns and six legible rail platforms.
+  b("MainHall",0,13,0,145,26,55,M["plaster"],1)
+  b("GlassFront",0,13,28,120,17,1,M["glass"])
+  b("Roof",0,27,0,154,3,64,M["roof"])
+  # Repeated structural bays and mullions break the single-box silhouette at overhead scale.
+  for bx in range(-65,66,13):
+   b("Hall_Facade_Pier_%d"%bx,bx,13,28.9,1.25,20,1.1,M["concrete"],.08)
+  for bx in range(-54,55,18):
+   b("Entrance_Glazing_Bay_%d"%bx,bx,12.5,29.15,15.5,14,.22,M["glass"],.05)
+  # Raised roof lanterns with metallic frames and translucent glass strips.
+  for lx in (-48,-24,0,24,48):
+   b("Roof_Skylight_Frame_%d"%lx,lx,29.1,-1,17,.65,21,M["metal"],.12)
+   b("Roof_Skylight_Glass_%d"%lx,lx,29.18,-1,14,.28,18,M["glass"],.08)
+  # Entrance canopy, edge beams and evenly spaced support columns.
+  b("Entrance_Canopy",0,22,34,128,1.3,15,M["metal"],.18)
+  b("Entrance_Canopy_Glass",0,22.75,35,118,.25,12,M["glass"],.05)
+  for cx in range(-58,59,14):
+   b("Canopy_Support_%d"%cx,cx,16,39,.85,12,.85,M["metal"],.08)
+  # Six platforms with roof trusses, platform edge safety stripe, sleepers and two rails per track.
+  for pidx,pz in enumerate((-75,-48,-21,21,48,75)):
+   b("Platform_%02d"%pidx,0,1,pz,170,2,13,M["concrete"],.18)
+   b("Platform_Safety_Edge_%02d"%pidx,0,2.08,pz-5.3,168,.16,.48,M["yellow"],.03)
+   b("Canopy_%02d"%pidx,0,10,pz,174,1,13,M["metal"],.12)
+   b("Canopy_Ridge_%02d"%pidx,0,10.7,pz,174,.35,.55,M["concrete"],.04)
+   for tx in range(-80,81,8):
+    b("Sleeper_%02d_%d"%(pidx,tx),tx,2.45,pz-8,2.3,.32,1.05,M["wood"])
+   for rz in (pz-2.0,pz+2.0):
+    b("Track_Rail_%02d_%.1f"%(pidx,rz),0,2.72,rz,174,.42,.32,M["metal"],.05)
+   for lx in range(-72,73,24):
+    b("Platform_Light_Post_%02d_%d"%(pidx,lx),lx,6.1,pz, .35,8.2,.35,M["metal"],.06)
+    b("Platform_Light_%02d_%d"%(pidx,lx),lx,10.35,pz,2.2,.3,1.0,M["white"],.08)
+  # Track-end signals and service cabinets add scale and railway identity.
+  for sx in (-88,88):
+   b("Track_Signal_Pole_%d"%sx,sx,5,-48,.5,8,.5,M["metal"],.05)
+   b("Track_Signal_Lamp_Red_%d"%sx,sx,8.7,-48,1.1,1.1,.6,M["red"],.08)
+   b("Track_Signal_Lamp_Green_%d"%sx,sx,10,-48,1.1,1.1,.6,M["crop"],.08)
+  for bx in (-45,45):
+   b("Station_Service_Cabinet_%d"%bx,bx,2,42,5,3,3,M["metal"],.15)
  elif kind=="residential":
   for i in range(30):
    dx=(i%6)*25-62.5;dz=(i//6)*29-58;h=random.choice([7,9,12,16,18]);w=random.uniform(15,20);d=random.uniform(16,21)
