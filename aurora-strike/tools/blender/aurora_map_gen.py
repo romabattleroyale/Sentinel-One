@@ -350,6 +350,36 @@ def make_terrain(c):
    uv_layer.data[loop_index].uv=uvs[terrain_obj.data.loops[loop_index].vertex_index]
  # Add a second, lower-detail rock/sand shoulder along sea-facing cliffs for top-down relief.
  return terrain_obj
+def make_terrain_collision(c):
+ # Godotite may replace the high-density render mesh with an LOD node. Keep a separate,
+ # lower-triangle terrain mesh for stable player collision and hide its renderer in Godot.
+ step=8.0
+ samples=int(SIZE/step)+1
+ verts=[];faces=[];lookup={}
+ for iz in range(samples):
+  z=-1000.0+iz*step
+  crossings=[]
+  prev_x,prev_z=COAST[-1]
+  for curr_x,curr_z in COAST:
+   if (curr_z>z)!=(prev_z>z):
+    crossings.append(curr_x+(z-curr_z)*(prev_x-curr_x)/(prev_z-curr_z))
+   prev_x,prev_z=curr_x,curr_z
+  crossings.sort()
+  for span in range(0,len(crossings)-1,2):
+   first=max(0,int(math.ceil((crossings[span]+1000.0)/step)))
+   last=min(samples-1,int(math.floor((crossings[span+1]+1000.0)/step)))
+   for ix in range(first,last+1):
+    x=-1000.0+ix*step
+    lookup[(ix,iz)]=len(verts)
+    verts.append((x,height(x,z)-.35,z))
+ for (ix,iz),a in lookup.items():
+  b=lookup.get((ix+1,iz));d=lookup.get((ix,iz+1));e=lookup.get((ix+1,iz+1))
+  if b is not None and d is not None and e is not None:
+   faces.extend([(a,d,b),(b,d,e)])
+ obj=mesh("Island_Terrain_Collision_LowPoly",verts,faces,c,[M["grass"]])
+ log("Terrain collision source: %d vertices / %d triangles"%(len(verts),len(faces)))
+ return obj
+
 def ribbon(name,points,width,yoff,ma,c):
  verts=[];faces=[]
  for i,(x,z) in enumerate(points):
@@ -822,7 +852,7 @@ def main():
  M["forest_deep"]=mat("AS_forest_deep",(.025,.105,.047),.98,0)
  M["hill_lit"]=mat("AS_hill_lit",(.29,.43,.13),.97,0)
  root=collection("AURORA_STRIKE_WORLD");tc=collection("Terrain_Source",root);wc=collection("Water_and_Coast",root);rc=collection("Roads_and_Bridges",root);pc=collection("POI_Registry",root)
- terrain=make_terrain(tc);build_water(wc);paths_between(rc);poi_cols=[]
+ terrain=make_terrain(tc);make_terrain_collision(tc);build_water(wc);paths_between(rc);poi_cols=[]
  for idx,poi in enumerate(POIS,1):log("Building POI %d/16: %s"%(idx,poi[1]));poi_cols.append((poi,make_poi(poi,pc)))
  # Batch trees by biome to reduce object count.
  veg=collection("Vegetation_Batches",root)
