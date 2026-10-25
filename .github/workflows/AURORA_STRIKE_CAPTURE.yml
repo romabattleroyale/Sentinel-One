@@ -71,11 +71,16 @@ jobs:
           DOTNET_GCConserveMemory: '9'
         run: |
           set -euo pipefail
-          # First import writes Godot's sidecar metadata; the plugin exposes its LOD option there.
+          # Build through Godot's own Mono integration, then verify the C# global class is usable.
           godot --headless --editor --build-solutions --path . --quit 2>&1 | tee /tmp/aurora-godot-import-first.log
-          # Build again through Godot's Mono project integration so Godotite's Native script finds the assembly.
           dotnet build Godotite.csproj --configuration Release --nologo
           test -s ".godot/mono/temp/bin/Release/Godotite.dll"
+          # Run a fresh editor process after the build; its script cache should now expose C# methods.
+          godot --headless --editor --build-solutions --path . --quit 2>&1 | tee /tmp/aurora-godot-csharp-load.log
+          if grep -q "Building needs the project's C# built" /tmp/aurora-godot-csharp-load.log; then
+            echo "Godot still cannot see GodotiteNative after the C# build."
+            exit 1
+          fi
           IMPORT_FILE="world/generated_blender/AURORA_STRIKE_Master_Preview.glb.import"
           test -s "$IMPORT_FILE"
           python3 - <<'PY'
@@ -92,7 +97,7 @@ jobs:
           print("Godotite LOD enabled for the generated master GLB")
           PY
           godot --headless --editor --build-solutions --path . --quit 2>&1 | tee /tmp/aurora-godotite-lod-import.log
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-godot-import-first.log /tmp/aurora-godotite-lod-import.log; then exit 1; fi
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/aurora-godot-import-first.log /tmp/aurora-godot-csharp-load.log /tmp/aurora-godotite-lod-import.log; then exit 1; fi
           grep -E 'Godotite|godotite' /tmp/aurora-godotite-lod-import.log | tail -n 20 || true
       - name: Configure square viewport for full-map screenshots
         working-directory: aurora-strike
