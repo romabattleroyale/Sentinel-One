@@ -205,9 +205,12 @@ def make_pbr_surface(name, base_color, roughness=.82, metallic=0.0, noise_scale=
  bs.inputs["Base Color"].default_value=(*base_color,1)
  bs.inputs["Roughness"].default_value=roughness
  bs.inputs["Metallic"].default_value=metallic
- texcoord=nodes.new("ShaderNodeTexCoord")
+ # Use world-space coordinates so texture grain has a consistent real-world size across buildings,
+ # road strips and props; Generated coordinates would stretch/restart on every individual mesh.
+ geometry=nodes.new("ShaderNodeNewGeometry")
+ world_position=geometry.outputs["Position"]
  broad=nodes.new("ShaderNodeTexNoise");broad.inputs["Scale"].default_value=noise_scale;broad.inputs["Detail"].default_value=5.0;broad.inputs["Roughness"].default_value=.72
- links.new(texcoord.outputs["Generated"],broad.inputs["Vector"])
+ links.new(world_position,broad.inputs["Vector"])
  ramp=nodes.new("ShaderNodeValToRGB")
  dark=tuple(max(0,v*.72) for v in base_color)+(1,)
  light=tuple(min(1,v*1.18+.012) for v in base_color)+(1,)
@@ -215,7 +218,7 @@ def make_pbr_surface(name, base_color, roughness=.82, metallic=0.0, noise_scale=
  ramp.color_ramp.elements[1].position=.78;ramp.color_ramp.elements[1].color=light
  links.new(broad.outputs["Fac"],ramp.inputs["Fac"]);links.new(ramp.outputs["Color"],bs.inputs["Base Color"])
  fine=nodes.new("ShaderNodeTexNoise");fine.inputs["Scale"].default_value=fine_scale;fine.inputs["Detail"].default_value=2.0;fine.inputs["Roughness"].default_value=.68
- links.new(texcoord.outputs["Generated"],fine.inputs["Vector"])
+ links.new(world_position,fine.inputs["Vector"])
  bump=nodes.new("ShaderNodeBump");bump.inputs["Strength"].default_value=bump_strength;bump.inputs["Distance"].default_value=bump_distance
  links.new(fine.outputs["Fac"],bump.inputs["Height"]);links.new(bump.outputs["Normal"],bs.inputs["Normal"])
  links.new(bs.outputs["BSDF"],out.inputs["Surface"])
@@ -223,18 +226,19 @@ def make_pbr_surface(name, base_color, roughness=.82, metallic=0.0, noise_scale=
 
 def install_realistic_material_library():
  settings={
-  "AS_asphalt_PBR":((.075,.082,.085),.91,.02,54,.18,.055,240),
-  "AS_concrete_PBR":((.42,.43,.41),.87,0,42,.24,.07,210),
-  "AS_plaster_PBR":((.62,.55,.44),.88,0,28,.20,.045,150),
-  "AS_brick_PBR":((.40,.17,.12),.91,0,34,.24,.05,190),
-  "AS_roof_PBR":((.105,.12,.125),.84,.08,44,.22,.04,220),
-  "AS_metal_PBR":((.22,.25,.26),.43,.72,68,.12,.025,280),
-  "AS_wood_PBR":((.24,.13,.065),.79,0,18,.18,.035,130),
-  "AS_sand_PBR":((.65,.49,.30),.94,0,32,.28,.09,170),
-  "AS_soil_PBR":((.22,.15,.095),.97,0,22,.30,.11,120),
-  "AS_glass_PBR":((.055,.16,.21),.20,.16,95,.06,.008,300),
-  "AS_rust_PBR":((.33,.105,.055),.83,.18,30,.25,.06,190),
-  "AS_water_PBR":((.008,.075,.14),.24,.04,26,.08,.012,150)
+  # World-space noise scales: broad breakup roughly 8–30 m, fine surface detail roughly 0.4–1.2 m.
+  "AS_asphalt_PBR":((.075,.082,.085),.91,.02,.075,.12,.025,1.7),
+  "AS_concrete_PBR":((.42,.43,.41),.87,0,.09,.18,.035,2.0),
+  "AS_plaster_PBR":((.62,.55,.44),.88,0,.12,.14,.022,2.2),
+  "AS_brick_PBR":((.40,.17,.12),.91,0,.10,.18,.028,2.1),
+  "AS_roof_PBR":((.105,.12,.125),.84,.08,.085,.17,.022,2.0),
+  "AS_metal_PBR":((.22,.25,.26),.43,.72,.065,.09,.012,2.4),
+  "AS_wood_PBR":((.24,.13,.065),.79,0,.16,.13,.018,1.6),
+  "AS_sand_PBR":((.65,.49,.30),.94,0,.11,.20,.045,2.0),
+  "AS_soil_PBR":((.22,.15,.095),.97,0,.14,.22,.05,1.8),
+  "AS_glass_PBR":((.055,.16,.21),.20,.16,.06,.035,.004,2.2),
+  "AS_rust_PBR":((.33,.105,.055),.83,.18,.12,.19,.03,2.0),
+  "AS_water_PBR":((.008,.075,.14),.24,.04,.07,.05,.006,1.8)
  }
  for name,(color,rough,metal,scale,bump_strength,bump_distance,fine_scale) in settings.items():
   make_pbr_surface(name,color,rough,metal,scale,bump_strength,bump_distance,fine_scale)
