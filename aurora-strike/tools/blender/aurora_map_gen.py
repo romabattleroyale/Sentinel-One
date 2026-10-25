@@ -706,6 +706,40 @@ def make_poi(poi,root):
  return c
 
 # --- exporter / entry point ---
+def make_rock_field(name, bounds, count, kind, parent):
+ # Batch each biome's boulders into one mesh to add geological breakup without thousands of objects.
+ xmin,xmax,zmin,zmax=bounds
+ verts=[];faces=[];indices=[]
+ rock_mats=[M["rock"],M["snow"],M["white"]] if kind=="alpine" else ([M["red"],M["sand"],M["rock"]] if kind=="desert" else [M["rock"],M["soil"],M["concrete"]])
+ for k in range(count):
+  x=random.uniform(xmin,xmax);z=random.uniform(zmin,zmax);ground=height(x,z)
+  if ground < 3.8: continue
+  radius=random.uniform(2.2,8.5) if kind=="alpine" else random.uniform(2.5,10.5)
+  tall=random.uniform(2.0,8.5) if kind!="alpine" else random.uniform(3.0,12.5)
+  sides=5+(k%4);phase=random.random()*math.tau;base=len(verts)
+  for ring,(rf,yf) in enumerate(((1.0,.02),(.68,.47))):
+   for side in range(sides):
+    angle=math.tau*side/sides+phase+ring*.09
+    irregular=.76+.24*random.random()
+    verts.append((x+math.cos(angle)*radius*rf*irregular,
+                  ground+tall*yf+random.uniform(-.08,.08)*tall,
+                  z+math.sin(angle)*radius*rf*irregular))
+  apex=len(verts);verts.append((x+random.uniform(-.22,.22)*radius,ground+tall,z+random.uniform(-.22,.22)*radius))
+  for side in range(sides):
+   nxt=(side+1)%sides
+   faces.append((base+side,base+nxt,base+sides+nxt,base+sides+side))
+   faces.append((base+sides+side,base+sides+nxt,apex))
+   if kind=="alpine":
+    indices.extend([0,1 if ground>145 and random.random()<.55 else 0])
+   elif kind=="desert":
+    indices.extend([2 if random.random()<.3 else 0,0 if random.random()<.6 else 1])
+   else:
+    indices.extend([0,1 if random.random()<.35 else 0])
+ obj=mesh(name,verts,faces,parent,rock_mats,indices)
+ for poly in obj.data.polygons: poly.use_smooth=False
+ log("%s: %d rock faces"%(name,len(faces)))
+ return obj
+
 def create_overview(root):
  scene=bpy.context.scene; world=bpy.data.worlds.new("AS_Sky") if not bpy.data.worlds else bpy.data.worlds[0];scene.world=world;world.use_nodes=True;world.node_tree.nodes["Background"].inputs["Color"].default_value=(.20,.31,.42,1);world.node_tree.nodes["Background"].inputs["Strength"].default_value=.75
  bpy.ops.object.light_add(type="SUN",location=(0,450,0));sun=bpy.context.object;sun.name="AS_Sun";sun.data.energy=4.0;sun.data.use_shadow=True;sun.rotation_euler=(math.radians(25),math.radians(-25),math.radians(-30));relink(sun,root)
@@ -783,7 +817,11 @@ def main():
  bpy.ops.object.select_all(action="SELECT");bpy.ops.object.delete(use_global=False)
  for c in list(bpy.data.collections):
   if c.name!=bpy.context.scene.collection.name:bpy.data.collections.remove(c)
- init_mats();root=collection("AURORA_STRIKE_WORLD");tc=collection("Terrain_Source",root);wc=collection("Water_and_Coast",root);rc=collection("Roads_and_Bridges",root);pc=collection("POI_Registry",root)
+ init_mats()
+ M["forest_lit"]=mat("AS_forest_lit",(.085,.235,.095),.96,0)
+ M["forest_deep"]=mat("AS_forest_deep",(.025,.105,.047),.98,0)
+ M["hill_lit"]=mat("AS_hill_lit",(.29,.43,.13),.97,0)
+ root=collection("AURORA_STRIKE_WORLD");tc=collection("Terrain_Source",root);wc=collection("Water_and_Coast",root);rc=collection("Roads_and_Bridges",root);pc=collection("POI_Registry",root)
  terrain=make_terrain(tc);build_water(wc);paths_between(rc);poi_cols=[]
  for idx,poi in enumerate(POIS,1):log("Building POI %d/16: %s"%(idx,poi[1]));poi_cols.append((poi,make_poi(poi,pc)))
  # Batch trees by biome to reduce object count.
@@ -829,6 +867,7 @@ def main():
    mi.extend([0]*6)
    # Three stacked, triangulated foliage crowns; one mesh per biome keeps object count low.
    side_count=5+(k%5)
+   foliage_base=1+(k%3)
    crown_shape=(.78,.98,1.12,1.0,.86)[k%5]
    for tier in range(3):
     ring_base=len(v); base_y=y+h*(.28+tier*.205); radius=r*crown_shape*(1.08-tier*.19); peak_y=y+h*(.72+tier*.13)
@@ -838,11 +877,16 @@ def main():
      v.append((x+local_radius*math.cos(ang),base_y,z+local_radius*math.sin(ang)))
     tip=len(v);v.append((x+math.sin(k*.13)*r*.08,peak_y,z+math.cos(k*.17)*r*.08))
     for side in range(side_count):
-     f.append((ring_base+side,ring_base+(side+1)%side_count,tip));mi.append(1)
+     f.append((ring_base+side,ring_base+(side+1)%side_count,tip));mi.append(1+((foliage_base-1+tier)%len(palette)))
      if tier==0:
-      f.append((base+4,ring_base+side,ring_base+(side+1)%side_count));mi.append(1)
-  tree=mesh(name+"_TreeBatch",v,f,veg,[M["wood"],ma],mi)
+      f.append((base+4,ring_base+side,ring_base+(side+1)%side_count));mi.append(foliage_base)
+  palette=[ma,M["forest_lit"],M["forest_deep"]] if name not in ("Colline_Verdi","Macchia_Centrale") else [ma,M["hill_lit"],M["forest"]]
+  tree=mesh(name+"_TreeBatch",v,f,veg,[M["wood"]]+palette,mi)
   for poly in tree.data.polygons: poly.use_smooth=False
+ # Batched multi-biome boulders improve alpine, quarry and red-desert silhouettes.
+ make_rock_field("Alpine_Fractured_Outcrops",(-785,-360,-865,-520),760,"alpine",root)
+ make_rock_field("Quarry_Rim_Outcrops",(-125,190,385,685),470,"quarry",root)
+ make_rock_field("Red_Desert_Outcrops",(420,855,280,665),630,"desert",root)
  camera=create_overview(root)
  source=OUT/"AURORA_STRIKE_Map_Source.blend";bpy.ops.wm.save_as_mainfile(filepath=str(source));log("Saved editable Blender source")
  rows=[];tile_paths=export_tiles(terrain,OUT,rows)
