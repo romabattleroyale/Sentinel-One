@@ -30,9 +30,15 @@ if [[ -z "${SOURCE:-}" || ! -f "$SOURCE/plugin.cfg" ]]; then
 fi
 cp -a "$SOURCE" "$DEST"
 # Godotite's editor-time mesh builder is C#. Copy its matching SDK project too.
-CSPROJ="$(find "$TMP/unpacked" -maxdepth 3 -name 'Godotite.csproj' -print -quit)"
-if [[ -z "$CSPROJ" || ! -f "$CSPROJ" ]]; then
-  echo "Could not find Godotite.csproj in the downloaded archive." >&2
+CSPROJ="$TMP/Godotite.csproj"
+# Some GitHub tag archives omit repository-root build files; fetch the pinned file directly.
+if ! find "$TMP/unpacked" -name 'Godotite.csproj' -print -quit | grep -q .; then
+  curl --fail --location --retry 3 "https://raw.githubusercontent.com/Arkaein/godotite/${VERSION}/Godotite.csproj" --output "$CSPROJ"
+else
+  find "$TMP/unpacked" -name 'Godotite.csproj' -print -quit | xargs -r cp -t "$TMP"
+fi
+if [[ ! -s "$CSPROJ" ]]; then
+  echo "Could not obtain Godotite.csproj for ${VERSION}." >&2
   rm -rf "$DEST"
   exit 4
 fi
