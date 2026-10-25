@@ -113,3 +113,18 @@
 - Added a deterministic 1024×1024 world-aligned terrain albedo image, world-coordinate UVs, multi-frequency colour variation, blended forest canopies, exposed rock and snow fields, desert strata, farmland rows, and a subtle material bump.
 - The previous revision's Blender export and Godot graphical run succeeded, but this image-texture revision is still awaiting its own Blender generation and graphical runtime capture. Do not treat the prior screenshots as evidence of this new texture pass.
 - Still not final/photoreal: unique architectural assets, PBR texture sets for each POI, mature prop/decals pass, water/foam refinement, in-game streaming/tile seam checks, and mobile performance/playability remain.
+
+
+## 2026-10-25 — Blender POI pass: Stazione Termini
+
+### Blender changes
+- Reworked the `station` branch in `tools/blender/aurora_map_gen.py` to make the railway hub more legible in the overhead island view and closer to a contemporary major station rather than three simple boxes.
+- Divided the glazed front into repeated structural bays; added five framed roof lanterns, a glazed entrance canopy with supports, platform safety-edge markings, paired rails and sleepers for all six tracks, platform light posts, track-end signals, and service cabinets.
+- Kept the station's existing POI anchor, overall hall footprint, road network, world coordinates, terrain, and Godot gameplay code unchanged.
+
+### Verification
+- The code edit is committed as `1c26e253205e554779938a4f33ade860c584d012`.
+- Blender generation, GLB export, and fresh Godot runtime captures for this specific commit must complete before this pass is marked verified. Earlier successful runs validate the previous generator only.
+
+### Remaining visual work
+- This is a focused geometry pass, not a claim of photorealism. The hall still needs custom architectural proportions/material response, platform clutter and railway props, and an inspected top-down/runtime comparison against the reference board.
