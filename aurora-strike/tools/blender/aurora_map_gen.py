@@ -10,7 +10,7 @@ from mathutils import Vector
 OUT = Path(os.environ.get("AURORA_OUTPUT_DIR", str(Path(__file__).resolve().parent / "generated")))
 SEED = 271023
 SIZE, TILE, N = 2000.0, 250.0, 8
-STEP = 5.0  # 5 m terrain sampling: smoother natural silhouettes without changing height/POI anchors.
+STEP = 2.5  # 2.5 m terrain sampling: 4x the grid density, sharper ridges/coast and smoother gameplay silhouettes.
 random.seed(SEED)
 POIS = [
 ("01_Monte_Nevoso","Monte Nevoso",-531,-719,"snow"),
@@ -707,11 +707,11 @@ def glb_export(objects,path):
  bpy.ops.object.select_all(action="DESELECT")
  return path.exists() and path.stat().st_size>64
 def export_tiles(terrain,outdir,rows):
- # Generate each tile from the same global height function on a 5m lattice.
+ # Generate each tile from the same global height function on a 2.5m lattice.
  # Shared-edge coordinates are computed from each tile origin and the same exact step,
  # so adjacent tiles have matching seam vertices and a substantially cleaner shoreline.
- log("Generating 64 individual terrain tile meshes on a shared 5m lattice")
- paths=[]; tile_segments=50; tile_vertices=tile_segments+1; step=TILE/float(tile_segments)
+ log("Generating 64 high-density terrain tile meshes on a shared 2.5m lattice")
+ paths=[]; tile_segments=100; tile_vertices=tile_segments+1; step=TILE/float(tile_segments)
  for j in range(N):
   for i in range(N):
    x0=-1000+i*TILE; z0=-1000+j*TILE; x1=x0+TILE; z1=z0+TILE
@@ -738,7 +738,7 @@ def export_tiles(terrain,outdir,rows):
     for poly in tile.data.polygons: poly.use_smooth=True
    tile.location=(x0,0,z0);tile["tile_x"]=i;tile["tile_z"]=j;tile["world_origin_x"]=x0;tile["world_origin_z"]=z0;tile["kind"]=tile_type
    path=outdir/"tiles"/(name+".glb");path.parent.mkdir(parents=True,exist_ok=True);glb_export([tile],path);paths.append(path)
-   rows.append([tile_type,name,str(path.relative_to(OUT)),i,j,x0,z0,x1,z1,"procedural original; 5m grid; estimated heights; verify transform once in Godot"])
+   rows.append([tile_type,name,str(path.relative_to(OUT)),i,j,x0,z0,x1,z1,"procedural original; 2.5m grid; estimated heights; verify transform once in Godot"])
    bpy.data.objects.remove(tile,do_unlink=True);bpy.data.collections.remove(col)
    log(name+" exported")
  return paths
