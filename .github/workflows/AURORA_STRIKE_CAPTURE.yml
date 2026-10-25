@@ -49,8 +49,16 @@ jobs:
           text = p.read_text(encoding="utf-8")
           section = '[editor_plugins]\nenabled=PackedStringArray("res://addons/godotite/plugin.cfg")'
           if "[editor_plugins]" in text:
-              raise SystemExit("Unexpected existing [editor_plugins] section; refusing to overwrite it")
-          p.write_text(text.rstrip() + "\n\n" + section + "\n", encoding="utf-8")
+              prefix, rest = text.split("[editor_plugins]", 1)
+              next_section = rest.find("\\n[")
+              if next_section >= 0:
+                  rest = rest[next_section+1:]
+                  text = prefix + section + "\\n\\n[" + rest
+              else:
+                  text = prefix + section + "\\n"
+          else:
+              text = text.rstrip() + "\\n\\n" + section + "\\n"
+          p.write_text(text, encoding="utf-8")
           PY
           dotnet build Godotite.csproj --configuration Release --nologo
       - name: Import Blender GLB and build Godotite LODs
