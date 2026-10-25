@@ -367,7 +367,7 @@ def bind_biome_texture_library(outdir):
   ("roof","rooftops",.84,.45),
   ("grass","grass",.97,.65),
   ("soil","quarry",.96,.7),
-  ("snow","mountains",.78,.48),
+  ("snow","snow",.76,.35),
  ]
  for material_key,texture_name,roughness_value,normal_strength in mappings:
   M[material_key]=bind_baked_pbr_textures("AS_"+material_key+"_Baked_PBR",texture_root/texture_name,roughness_value,normal_strength)
@@ -379,6 +379,7 @@ def generate_biome_texture_library(outdir):
  # Palette is matched to the reference: cold slate/snow, deep canopy, ultramarine water, terracotta badlands.
  sets=[
   ("mountains",(0.24,0.29,0.32),(0.86,0.91,0.96),.82,2.5),
+  ("snow",(0.80,0.87,0.94),(0.98,0.99,1.0),.76,2.8),
   ("forest",(0.035,0.12,0.045),(0.16,0.28,0.09),.95,4.0),
   ("ocean",(0.006,0.045,0.13),(0.015,0.14,0.23),.24,1.4),
   ("shallow_water",(0.01,0.32,0.43),(0.06,0.80,0.84),.18,3.0),
@@ -921,7 +922,7 @@ def make_rock_field(name, bounds, count, kind, parent):
   for side in range(sides):
    nxt=(side+1)%sides
    faces.append((base+side,base+nxt,base+sides+nxt,base+sides+side))
-   faces.append((base+sides+side,base+sides+nxt,apex))
+   faces.append((base+sides+nxt,base+sides+side,apex))
    if kind=="alpine":
     indices.extend([0,1 if ground>145 and random.random()<.55 else 0])
    elif kind=="desert":
@@ -1073,7 +1074,8 @@ def main():
      v.append((x+local_radius*math.cos(ang),base_y,z+local_radius*math.sin(ang)))
     tip=len(v);v.append((x+math.sin(k*.13)*r*.08,peak_y,z+math.cos(k*.17)*r*.08))
     for side in range(side_count):
-     f.append((ring_base+side,ring_base+(side+1)%side_count,tip));mi.append(1+((foliage_base-1+tier)%len(palette)))
+     # Correct winding makes canopy facets face outward/upward instead of rendering as dark specks.
+     f.append((ring_base+(side+1)%side_count,ring_base+side,tip));mi.append(1+((foliage_base-1+tier)%len(palette)))
      if tier==0:
       f.append((base+4,ring_base+side,ring_base+(side+1)%side_count));mi.append(foliage_base)
   tree=mesh(name+"_TreeBatch",v,f,veg,[M["wood"]]+palette,mi)
